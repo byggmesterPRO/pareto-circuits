@@ -1,0 +1,7 @@
+{
+  "description": "v1.0 | 52 gates | 9 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits\n\nEight operations on two 2-bit numbers: 0 add, 1 subtract, 2 and, 3 or, 4 xor, 5 shift up, 6 shift down, 7 not.\n\nUse this circuit as the calculating core of a computer or calculator, wherever values must be added, subtracted, shifted or combined with logic.\n\nGive it two binary numbers, a and b, and a code from 0 to 7 for the operation: 0 adds, 1 subtracts, 2 is and, 3 is or, 4 is xor, 5 shifts a up one place, 6 shifts a down one place, 7 is not a. The flag gives the carry for add, the borrow for subtract, or the bit shifted out for shifts.\n\nInputs (yellow gates, first row, lowest bit first): a = x 0-1, b = x 2-3, operation = x 4-6.\nOutputs (green gates): result = x 0-1, flag (carry, borrow or the bit shifted out) = x 2.\n\nProfile: small, the build with the fewest gates for this size.\nHow it works: One small cell per bit; the carry walks from bit to bit.\nChecked on every possible input in a simulator. Gates include the input gates; ticks count the input gate too.\n\nOther sizes, the generator and the full explanation:\nhttps://github.com/byggmesterPRO/pareto-circuits/tree/main/circuits/alu",
+  "localId": "c78be1f3-687e-48f0-b1d6-9b7ec4801f5d",
+  "name": "Pareto Alu 2bit Small",
+  "type": "Blueprint",
+  "version": 0
+}
