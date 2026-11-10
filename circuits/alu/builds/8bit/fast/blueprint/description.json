@@ -1,0 +1,7 @@
+{
+  "description": "v1.0 | 189 gates | 7 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits\n\nEight operations on two 8-bit numbers: 0 add, 1 subtract, 2 and, 3 or, 4 xor, 5 shift up, 6 shift down, 7 not.\n\nUse this circuit as the calculating core of a computer or calculator, wherever values must be added, subtracted, shifted or combined with logic.\n\nGive it two binary numbers, a and b, and a code from 0 to 7 for the operation: 0 adds, 1 subtracts, 2 is and, 3 is or, 4 is xor, 5 shifts a up one place, 6 shifts a down one place, 7 is not a. The flag gives the carry for add, the borrow for subtract, or the bit shifted out for shifts.\n\nInputs (yellow gates, first row, lowest bit first): a = x 0-7, b = x 8-15, operation = x 16-18.\nOutputs (green gates): result = x 0-7, flag (carry, borrow or the bit shifted out) = x 8.\n\nProfile: fast, the build with the fewest ticks for this size.\nHow it works: Every bit sees its carry in one step, so the ticks do not grow with the size.\nChecked on every possible input in a simulator. Gates include the input gates; ticks count the input gate too.\n\nOther sizes, the generator and the full explanation:\nhttps://github.com/byggmesterPRO/pareto-circuits/tree/main/circuits/alu",
+  "localId": "37e404d0-b6fc-4ac4-8df6-6700e216bf2d",
+  "name": "Pareto Alu 8bit Fast",
+  "type": "Blueprint",
+  "version": 0
+}
