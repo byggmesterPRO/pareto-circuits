@@ -103,7 +103,7 @@ Times are whole program runs.
 
 | Size | Inputs tried | Gates | logic-sim | bygg (Python) |
 |---|---|---|---|---|
-| 12bit | 4096 | 135 | 0.02 s | 0.35 s |
+| 12bit | 4096 | 135 | 0.02 s | 0.16 s |
 | 16bit | 65 536 | 244 | 0.02 s | 5.5 s |
 | 24bit | 16.8 million | 572 | 0.07 s | |
 | 28bit | 268 million | 785 | 0.66 s | |
@@ -112,10 +112,11 @@ Times are whole program runs.
 About 0.015 s of each run is starting the program and reading the file. Through `serve` that is gone: one
 check of the 12bit circuit takes 0.9 ms, against 57 ms for the Python verifier inside a running Python.
 
-What made the difference, measured on the 28bit run: writing each gate's result straight into place and
-keeping a block of test inputs small enough for the CPU cache took it from 2.9 s to 0.75 s, and counting the
-reference in decimal instead of dividing for every input took it to 0.66 s. Building for the newest CPU
-instructions made no measurable difference.
+The first version took 2.9 s on the 28bit run and 50 s on the 32bit run. Three changes together brought that
+to 0.66 s and 15 s: each gate writes its result straight into place, a block of test inputs is kept small
+enough for the CPU cache (512 KB measured best), and the double dabble reference counts in decimal instead of
+dividing for every input. They were not timed one by one. Building for the newest CPU instructions was timed,
+and made no difference.
 
 ## Open points
 
