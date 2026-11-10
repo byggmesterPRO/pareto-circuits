@@ -1,0 +1,51 @@
+{
+  "family": "double-dabble",
+  "size": "12bit",
+  "profile": "small",
+  "version": "1.0",
+  "gates": 101,
+  "ticks": 52,
+  "source": "search",
+  "verified": "exhaustive",
+  "optimal": "best-known",
+  "authors": [
+    "byggmesterPRO"
+  ],
+  "date": "2026-11-10",
+  "workshop": "",
+  "notes": "Found with optimizers/fable/resub from the classic chain of add-3 cells. Output bit 0 is input bit 0 itself, and output bit 15 is always 0 and has no gate.",
+  "pins": {
+    "inputs": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "outputs": [
+      0,
+      52,
+      53,
+      54,
+      55,
+      89,
+      90,
+      87,
+      91,
+      94,
+      98,
+      99,
+      96,
+      100,
+      92,
+      null
+    ]
+  }
+}
