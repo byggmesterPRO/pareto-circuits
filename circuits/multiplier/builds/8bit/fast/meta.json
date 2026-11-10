@@ -1,0 +1,55 @@
+{
+  "authors": [
+    "byggmesterPRO"
+  ],
+  "date": "2026-11-10",
+  "family": "multiplier",
+  "gates": 534,
+  "notes": "Generator design: wide-blocks-8.",
+  "optimal": "best-known",
+  "pins": {
+    "inputs": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "outputs": [
+      16,
+      442,
+      520,
+      521,
+      522,
+      523,
+      524,
+      525,
+      526,
+      527,
+      528,
+      529,
+      530,
+      531,
+      532,
+      533
+    ]
+  },
+  "profile": "fast",
+  "size": "8bit",
+  "source": "generator",
+  "ticks": 10,
+  "verified": "exhaustive",
+  "version": "1.0",
+  "workshop": ""
+}
