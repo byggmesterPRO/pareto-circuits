@@ -1,0 +1,7 @@
+{
+  "description": "v1.0 | 7845 gates | 13 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits\n\nMultiplies a 32-bit number by itself.\n\nUse this circuit wherever a creation has to square a whole number, for example in a calculator or in the arithmetic part of a computer.\n\nIt multiplies one unsigned binary number by itself. The square is twice as wide as the input. Input and output are read least significant digit first.\n\nInputs (yellow gates, first row, lowest bit first): the number = x 0-31.\nOutputs (green gates): square = x 0-63.\n\nProfile: fast, the build with the fewest ticks for this size.\nHow it works: Counters of up to 7 bits bring the columns down in few layers, then a fast adder.\nChecked on every possible input in a simulator. Gates include the input gates; ticks count the input gate too.\n\nOther sizes, the generator and the full explanation:\nhttps://github.com/byggmesterPRO/pareto-circuits/tree/main/circuits/square",
+  "localId": "ad91cc83-9c85-4281-8ce5-72f926e1a31f",
+  "name": "Pareto Square 32bit Fast",
+  "type": "Blueprint",
+  "version": 0
+}
