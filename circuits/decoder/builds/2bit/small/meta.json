@@ -1,0 +1,29 @@
+{
+  "authors": [
+    "byggmesterPRO"
+  ],
+  "date": "2026-11-10",
+  "family": "decoder",
+  "gates": 8,
+  "notes": "Generator design: flat.",
+  "optimal": "best-known",
+  "pins": {
+    "inputs": [
+      0,
+      1
+    ],
+    "outputs": [
+      4,
+      5,
+      6,
+      7
+    ]
+  },
+  "profile": "small",
+  "size": "2bit",
+  "source": "generator",
+  "ticks": 3,
+  "verified": "exhaustive",
+  "version": "1.0",
+  "workshop": ""
+}
