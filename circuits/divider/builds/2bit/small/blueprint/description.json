@@ -1,0 +1,7 @@
+{
+  "description": "v1.0 | 15 gates | 3 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits\n\nDivides a by b, two 2-bit numbers. Dividing by 0 gives all ones.\n\nUse this circuit wherever a creation has to divide one whole number by another, for example in a calculator or in the arithmetic part of a computer.\n\nIt divides one unsigned binary number a by another, b, and returns the quotient and the remainder, both read least significant digit first. Dividing by zero gives a quotient of all ones and a remainder equal to a. So avoid a divisor of zero.\n\nInputs (yellow gates, first row, lowest bit first): a = x 0-1, b = x 2-3.\nOutputs (green gates): quotient = x 0-1, remainder = x 2-3.\n\nProfile: small, the build with the fewest gates for this size.\nHow it works: Every output is one XOR gate over AND gates of plain inputs: 3 ticks.\nChecked on every possible input in a simulator. Gates include the input gates; ticks count the input gate too.\n\nOther sizes, the generator and the full explanation:\nhttps://github.com/byggmesterPRO/pareto-circuits/tree/main/circuits/divider",
+  "localId": "5b346d40-c6ee-4cf4-b44e-a32cf86d1c02",
+  "name": "Pareto Divider 2bit Small",
+  "type": "Blueprint",
+  "version": 0
+}
