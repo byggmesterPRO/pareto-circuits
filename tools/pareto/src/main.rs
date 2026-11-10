@@ -6,8 +6,9 @@
 
 use logic_sim::build::{Design, Netlist};
 use logic_sim::check::check;
-use logic_sim::circuit::load;
-use logic_sim::families::{family, FAMILIES};
+use logic_sim::circuit::{load, Circuit};
+use logic_sim::families::{family, machine, FAMILIES, MACHINES};
+use logic_sim::memory;
 use logic_sim::validate::validate;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
@@ -28,30 +29,50 @@ Run it from inside the repo. Families: ";
 const PROFILES: [&str; 3] = ["fast", "small", "balanced"];
 const LINK: &str = "https://github.com/byggmesterPRO/pareto-circuits";
 
-type Designs = fn(usize) -> Result<Vec<Design>, String>;
+type Designs = Box<dyn Fn(&str) -> Result<Vec<Design>, String>>;
 
 /// A family's generator: the sizes it has build slots for, and its designs for a size.
-fn generator(fam: &str) -> Result<(&'static [usize], Designs), String> {
+fn generator(fam: &str) -> Result<(Vec<String>, Designs), String> {
     Ok(match fam {
-        "adder" => (&adder_generator::SIZES, adder_generator::designs),
-        "barrel-shifter" => (&barrel_shifter_generator::SIZES, barrel_shifter_generator::designs),
-        "comparator" => (&comparator_generator::SIZES, comparator_generator::designs),
-        "decoder" => (&decoder_generator::SIZES, decoder_generator::designs),
-        "demultiplexer" => (&demultiplexer_generator::SIZES, demultiplexer_generator::designs),
-        "double-dabble" => (&double_dabble_generator::SIZES, double_dabble_generator::designs),
-        "multiplexer" => (&multiplexer_generator::SIZES, multiplexer_generator::designs),
-        "multiplier" => (&multiplier_generator::SIZES, multiplier_generator::designs),
-        "seven-segment" => (&seven_segment_generator::SIZES, seven_segment_generator::designs),
-        "subtractor" => (&subtractor_generator::SIZES, subtractor_generator::designs),
-        _ => return Err(format!("no generator for \"{fam}\"; there are generators for: {}", FAMILIES.join(", "))),
+        "adder" => (adder_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| adder_generator::designs(bits_of(size)?))),
+        "barrel-shifter" => (barrel_shifter_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| barrel_shifter_generator::designs(bits_of(size)?))),
+        "comparator" => (comparator_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| comparator_generator::designs(bits_of(size)?))),
+        "counter" => (counter_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| counter_generator::designs(bits_of(size)?))),
+        "decoder" => (decoder_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| decoder_generator::designs(bits_of(size)?))),
+        "demultiplexer" => (demultiplexer_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| demultiplexer_generator::designs(bits_of(size)?))),
+        "double-dabble" => (double_dabble_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| double_dabble_generator::designs(bits_of(size)?))),
+        "multiplexer" => (multiplexer_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| multiplexer_generator::designs(bits_of(size)?))),
+        "multiplier" => (multiplier_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| multiplier_generator::designs(bits_of(size)?))),
+        "ram" => (ram_generator::SIZES.iter().map(|s| s.to_string()).collect(), Box::new(ram_generator::designs)),
+        "register" => (register_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| register_generator::designs(bits_of(size)?))),
+        "seven-segment" => (seven_segment_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| seven_segment_generator::designs(bits_of(size)?))),
+        "subtractor" => (subtractor_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| subtractor_generator::designs(bits_of(size)?))),
+        _ => return Err(format!("no generator for \"{fam}\"; there are generators for: {}, {}", FAMILIES.join(", "), MACHINES.join(", "))),
     })
 }
 
-fn designs(fam: &str, bits: usize) -> Result<Vec<Design>, String> {
-    generator(fam)?.1(bits)
+fn designs(fam: &str, size: &str) -> Result<Vec<Design>, String> {
+    generator(fam)?.1(size)
+}
+
+/// Random operations a circuit with memory is checked on, over 64 copies at once.
+const OPERATIONS: u64 = 3000;
+
+/// Check a circuit with memory against its family's model. Gives its ticks as the family counts them, and a
+/// note on its timing.
+fn check_memory(c: &Circuit, fam: &str, size: &str) -> Result<(u64, String), String> {
+    let m = machine(fam, size)?;
+    let res = memory::run(c, &m, OPERATIONS, 0x5EED)?;
+    if res.wrong > 0 {
+        return Err(format!("{} of {} operations end with a wrong output: {}", res.wrong, res.operations, res.example.unwrap_or_default()));
+    }
+    let ticks = if m.ticks_is_read { res.read } else { res.write };
+    Ok((ticks, format!("Ticks from an input to the outputs: {}. From a pulse to the outputs: {}. Inputs steady before a pulse: {}.", res.read, res.write, res.setup)))
 }
 
 struct Measured {
+    /// For a circuit with memory: its timing in words.
+    timing: String,
     name: String,
     netlist: Netlist,
     gates: u64,
@@ -65,6 +86,15 @@ fn threads() -> usize {
 
 /// Check a design against its family and count it. A wrong or unbuildable design is an error.
 fn measure(fam: &str, size: &str, d: Design) -> Result<Measured, String> {
+    if MACHINES.contains(&fam) {
+        let c = d.netlist.circuit();
+        let (ticks, timing) = check_memory(&c, fam, size).map_err(|e| format!("{}: {e}", d.name))?;
+        let problems = validate(&c).problems;
+        if !problems.is_empty() {
+            return Err(format!("{}: {}", d.name, problems.join("; ")));
+        }
+        return Ok(Measured { timing, name: d.name, netlist: d.netlist, gates: c.gates() as u64, ticks, verified: "sampled" });
+    }
     let f = family(fam, size)?;
     let c = d.netlist.circuit();
     if c.inputs.len() as u32 != f.bits || c.outputs.len() as u32 != f.out_bits {
@@ -78,7 +108,7 @@ fn measure(fam: &str, size: &str, d: Design) -> Result<Measured, String> {
     if !problems.is_empty() {
         return Err(format!("{}: {}", d.name, problems.join("; ")));
     }
-    Ok(Measured { name: d.name, netlist: d.netlist, gates: c.gates() as u64, ticks: c.ticks().unwrap_or(0) as u64, verified: if res.exhaustive { "exhaustive" } else { "sampled" } })
+    Ok(Measured { timing: String::new(), name: d.name, netlist: d.netlist, gates: c.gates() as u64, ticks: c.ticks().unwrap_or(0) as u64, verified: if res.exhaustive { "exhaustive" } else { "sampled" } })
 }
 
 /// Lower wins.
@@ -95,7 +125,7 @@ fn bits_of(size: &str) -> Result<usize, String> {
 }
 
 fn measured(fam: &str, size: &str) -> Result<Vec<Measured>, String> {
-    designs(fam, bits_of(size)?)?.into_iter().map(|d| measure(fam, size, d)).collect()
+    designs(fam, size)?.into_iter().map(|d| measure(fam, size, d)).collect()
 }
 
 fn repo_root() -> Result<PathBuf, String> {
@@ -174,14 +204,18 @@ fn write_slot(slot: &Path, fam: &str, size: &str, profile: &str, m: &Measured, a
     let meta = json!({
         "family": fam, "size": size, "profile": profile, "version": version, "gates": m.gates, "ticks": m.ticks,
         "source": "generator", "verified": m.verified, "optimal": "best-known", "authors": authors, "date": today(),
-        "workshop": workshop, "notes": format!("Generator design: {}.", m.name), "pins": pins,
+        "workshop": workshop, "notes": format!("Generator design: {}.{}{}", m.name, if m.timing.is_empty() { "" } else { " " }, m.timing), "pins": pins,
     });
     fs::write(slot.join("meta.json"), serde_json::to_string_pretty(&meta).unwrap() + "\n").map_err(|e| e.to_string())?;
     // read the slot back the way the verifier does and check it once more
     let (c, _) = load(slot, None)?;
-    let f = family(fam, size)?;
-    let res = check(&c, &f.expect(), threads(), &f.hard)?;
-    if res.wrong > 0 || c.gates() as u64 != m.gates || c.ticks().map(|t| t as u64) != Some(m.ticks) {
+    let (wrong, ticks) = if MACHINES.contains(&fam) {
+        (0, check_memory(&c, fam, size)?.0)
+    } else {
+        let f = family(fam, size)?;
+        (check(&c, &f.expect(), threads(), &f.hard)?.wrong, c.ticks().unwrap_or(0) as u64)
+    };
+    if wrong > 0 || c.gates() as u64 != m.gates || ticks != m.ticks {
         return Err(format!("the slot written to {} does not check out", slot.display()));
     }
     Ok(version)
@@ -230,14 +264,14 @@ fn run(mut args: Vec<String>) -> Result<(), String> {
         }
         "netlist" => {
             let (fam, size, name) = (arg(1)?, arg(2)?, arg(3)?);
-            let d = designs(fam, bits_of(size)?)?.into_iter().find(|d| d.name == name).ok_or(format!("{fam} has no design \"{name}\" at {size}"))?;
+            let d = designs(fam, size)?.into_iter().find(|d| d.name == name).ok_or(format!("{fam} has no design \"{name}\" at {size}"))?;
             let m = measure(fam, size, d)?;
             fs::write(arg(4)?, m.netlist.to_json().to_string() + "\n").map_err(|e| e.to_string())?;
             println!("{}: {} gates, {} ticks, {}", m.name, m.gates, m.ticks, m.verified);
             Ok(())
         }
         "build" => build(arg(1)?, arg(2)?, write, &authors),
-        "build-all" => generator(arg(1)?)?.0.iter().try_for_each(|b| build(arg(1)?, &format!("{b}bit"), write, &authors)),
+        "build-all" => generator(arg(1)?)?.0.iter().try_for_each(|size| build(arg(1)?, size, write, &authors)),
         other => Err(format!("unknown command \"{other}\"\n\n{USAGE}{}", FAMILIES.join(", "))),
     }
 }
@@ -246,19 +280,18 @@ fn run(mut args: Vec<String>) -> Result<(), String> {
 mod tests {
     use super::*;
 
-    /// Every design of every family, at every size with 16 input bits or fewer, on every input.
+    /// Every design of every family without memory, at every size with 16 input bits or fewer, on every input.
     #[test]
     fn every_design_is_correct() {
         for fam in FAMILIES {
-            let mut sizes: Vec<usize> = generator(fam).unwrap().0.to_vec();
-            sizes.extend([1, 3, 5, 6, 7]);
-            for n in sizes {
-                let size = format!("{n}bit");
+            let mut sizes = generator(fam).unwrap().0;
+            sizes.extend([1, 3, 5, 6, 7].map(|b| format!("{b}bit")));
+            for size in sizes {
                 let Ok(f) = family(fam, &size) else { continue };
                 if f.bits > 16 {
                     continue;
                 }
-                let Ok(all) = designs(fam, n) else { continue };
+                let Ok(all) = designs(fam, &size) else { continue };
                 assert!(!all.is_empty(), "{fam} {size} has no designs");
                 for d in all {
                     let name = d.name.clone();
@@ -267,6 +300,23 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// Every design of every family with memory, at small sizes, on random operations. And a broken one fails.
+    #[test]
+    fn memory_designs_are_correct() {
+        for (fam, sizes) in [("register", vec!["1bit", "3bit", "8bit"]), ("counter", vec!["1bit", "3bit", "8bit"]), ("ram", vec!["2x1bit", "4x3bit", "16x4bit"])] {
+            for size in sizes {
+                for d in designs(fam, size).unwrap() {
+                    let name = d.name.clone();
+                    measure(fam, size, d).unwrap_or_else(|e| panic!("{fam} {size} {name}: {e}"));
+                }
+            }
+        }
+        let mut d = designs("register", "4bit").unwrap().remove(0);
+        let g = d.netlist.gates.iter().position(|(m, _)| *m == 0).unwrap();
+        d.netlist.gates[g].0 = 1;
+        assert!(measure("register", "4bit", d).is_err());
     }
 }
 

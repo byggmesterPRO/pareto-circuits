@@ -121,8 +121,8 @@ impl Circuit {
             let mut ins = vec![];
             for s in gate[1].as_array().ok_or(format!("netlist: gate {g} has no input list"))? {
                 let s = s.as_u64().ok_or("netlist: a signal is not a number")? as usize;
-                if s >= n + g {
-                    return Err(format!("netlist: gate {g} reads signal {s}, which is not before it"));
+                if s >= n + gates.len() {
+                    return Err(format!("netlist: gate {g} reads signal {s}, which does not exist"));
                 }
                 ins.push(s as u32);
             }

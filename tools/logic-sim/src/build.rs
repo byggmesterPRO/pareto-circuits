@@ -1,8 +1,9 @@
 //! Building circuits: a netlist type, a builder that folds constants and shares equal gates, and a writer
 //! for blueprint.json. Generators use this.
 //!
-//! A netlist has `inputs` input bits (signal i < inputs is input bit i), then gates in feed-forward order
-//! (signal inputs + g is gate g). Gate modes are the game's: 0 and, 1 or, 2 xor, 3 nand, 4 nor, 5 xnor.
+//! A netlist has `inputs` input bits (signal i < inputs is input bit i), then gates (signal inputs + g is
+//! gate g). Without memory the gates are in feed-forward order. A circuit with memory has gates that read
+//! later gates, or themselves. Gate modes are the game's: 0 and, 1 or, 2 xor, 3 nand, 4 nor, 5 xnor.
 //! An output is a signal, or None for a bit that is always 0 and has no gate.
 
 use crate::circuit::{Circuit, Kind, LOGIC_GATE, MAX_CONNECTIONS};
@@ -101,6 +102,20 @@ impl Builder {
         }
     }
 
+    /// A gate whose inputs are given afterwards with `wire`, for loops: a gate that reads itself, or a gate
+    /// further on, is how memory is made. It is never shared with another gate.
+    pub fn later(&mut self, mode: u8) -> S {
+        self.gates.push((mode, vec![]));
+        S::Wire((self.inputs + self.gates.len() - 1) as u32)
+    }
+
+    /// Give a gate made with `later` its inputs. Constants are not allowed here.
+    pub fn wire(&mut self, gate: S, ins: &[S]) {
+        let S::Wire(g) = gate else { panic!("wire: not a gate") };
+        let ins: Vec<u32> = ins.iter().map(|x| if let S::Wire(w) = x { *w } else { panic!("wire: a constant input") }).collect();
+        self.gates[g as usize - self.inputs].1 = ins;
+    }
+
     pub fn and(&mut self, xs: &[S]) -> S {
         self.gate(AND, xs)
     }
@@ -173,11 +188,19 @@ impl Netlist {
         for o in self.outputs.iter().flatten() {
             live[*o as usize] = true;
         }
-        for g in (0..self.gates.len()).rev() {
-            if live[n + g] {
-                for &i in &self.gates[g].1 {
-                    live[i as usize] = true;
+        // more than one pass only when there are loops
+        loop {
+            let mut grew = false;
+            for g in (0..self.gates.len()).rev() {
+                if live[n + g] {
+                    for &i in &self.gates[g].1 {
+                        grew |= !live[i as usize] && i as usize > n + g;
+                        live[i as usize] = true;
+                    }
                 }
+            }
+            if !grew {
+                break;
             }
         }
         let mut new = vec![u32::MAX; n + self.gates.len()];
@@ -186,8 +209,11 @@ impl Netlist {
         for (g, (mode, ins)) in self.gates.iter().enumerate() {
             if live[n + g] {
                 new[n + g] = (n + gates.len()) as u32;
-                gates.push((*mode, ins.iter().map(|&i| new[i as usize]).collect()));
+                gates.push((*mode, ins.clone()));
             }
+        }
+        for (_, ins) in gates.iter_mut() {
+            ins.iter_mut().for_each(|i| *i = new[*i as usize]);
         }
         self.gates = gates;
         for o in self.outputs.iter_mut().flatten() {

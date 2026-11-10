@@ -5,16 +5,12 @@ builds at its sizes, and a README with pins and records.
 
 ## Done
 
-`adder`, `barrel-shifter`, `comparator`, `decoder`, `demultiplexer`, `double-dabble`, `multiplexer`,
-`multiplier`, `seven-segment`, `subtractor`.
+`adder`, `barrel-shifter`, `comparator`, `counter`, `decoder`, `demultiplexer`, `double-dabble`,
+`multiplexer`, `multiplier`, `ram`, `register`, `seven-segment`, `subtractor`.
 
-## Next: the first families with memory
-
-`ram`, `counter`, `register`.
-
-These need three things the families so far did not: a rule for how a write and a read are timed, what
-`ticks` means (the main README leaves that to the family), and checking by test script on the tick simulator
-instead of trying every input.
+`counter`, `ram` and `register` have memory. They take one-tick pulses, and are checked by random operations
+against a model on the tick simulator (`tools/logic-sim/src/memory.rs`). Each family README says what its
+`ticks` means.
 
 ## Asked for
 

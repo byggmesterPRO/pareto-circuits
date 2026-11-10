@@ -42,5 +42,9 @@ A one-off search result that sits in a slot stays there until a design beats it.
 4. `cargo test --release -p pareto` then checks every design of every family on every input, at every size
    with 16 input bits or fewer.
 
-Families so far: `adder`, `barrel-shifter`, `comparator`, `decoder`, `demultiplexer`, `double-dabble`,
-`multiplexer`, `multiplier`, `seven-segment`, `subtractor`.
+A family with memory is a `Machine` in `families.rs` instead: which inputs are one-tick pulses, and a model
+that says what the outputs should be after an operation. Its generator makes loops with `Builder::later` and
+`Builder::wire`. It is checked on the tick simulator with random operations, and its ticks are measured there.
+
+Families so far: `adder`, `barrel-shifter`, `comparator`, `counter`, `decoder`, `demultiplexer`,
+`double-dabble`, `multiplexer`, `multiplier`, `ram`, `register`, `seven-segment`, `subtractor`.

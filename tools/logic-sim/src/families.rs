@@ -61,8 +61,95 @@ pub fn family(name: &str, size: &str) -> Result<Family, String> {
         "multiplier" => multiplier(size),
         "seven-segment" => seven_segment(size),
         "subtractor" => subtractor(size),
-        _ => Err(format!("unknown family \"{name}\"; known: {}", FAMILIES.join(", "))),
+        _ => Err(format!("unknown family \"{name}\"; known: {}, {}", FAMILIES.join(", "), MACHINES.join(", "))),
     }
+}
+
+/// A family with memory, as a model: what the outputs should be after an operation (see `memory`).
+pub struct Machine {
+    pub bits: u32,
+    pub out_bits: u32,
+    /// The inputs that are pulses of exactly one tick (write, count, reset). The others are levels.
+    pub pulses: Vec<u32>,
+    /// The state of a circuit that was just built.
+    pub start: Box<dyn Fn() -> Vec<u128> + Send + Sync>,
+    /// Apply the inputs (a pulse input is 1 if it was pulsed) to the state and give the outputs.
+    pub step: Box<dyn Fn(&mut Vec<u128>, u128) -> u128 + Send + Sync>,
+    /// True if `ticks` in a build's meta.json is the read delay (inputs to outputs); otherwise it is the
+    /// delay from a pulse to the outputs.
+    pub ticks_is_read: bool,
+}
+
+pub const MACHINES: [&str; 3] = ["counter", "ram", "register"];
+
+pub fn machine(name: &str, size: &str) -> Result<Machine, String> {
+    match name {
+        "counter" => {
+            let n = bits_of("counter", size, 64)?;
+            Ok(Machine {
+                bits: 2,
+                out_bits: n,
+                pulses: vec![0, 1],
+                start: Box::new(|| vec![0]),
+                step: Box::new(move |s, x| {
+                    if x & 1 == 1 {
+                        s[0] = (s[0] + 1) & mask(n);
+                    }
+                    if x & 2 == 2 {
+                        s[0] = 0;
+                    }
+                    s[0]
+                }),
+                ticks_is_read: false,
+            })
+        }
+        "register" => {
+            let n = bits_of("register", size, 64)?;
+            Ok(Machine {
+                bits: n + 1,
+                out_bits: n,
+                pulses: vec![n],
+                start: Box::new(|| vec![0]),
+                step: Box::new(move |s, x| {
+                    if x >> n & 1 == 1 {
+                        s[0] = x & mask(n);
+                    }
+                    s[0]
+                }),
+                ticks_is_read: false,
+            })
+        }
+        "ram" => {
+            let (words, width) = ram_size(size)?;
+            let a = words.trailing_zeros();
+            Ok(Machine {
+                bits: a + width + 1,
+                out_bits: width,
+                pulses: vec![a + width],
+                start: Box::new(move || vec![0; words as usize]),
+                step: Box::new(move |s, x| {
+                    let at = (x & mask(a)) as usize;
+                    if x >> (a + width) & 1 == 1 {
+                        s[at] = x >> a & mask(width);
+                    }
+                    s[at]
+                }),
+                ticks_is_read: true,
+            })
+        }
+        _ => Err(format!("unknown family \"{name}\"; known: {}, {}", FAMILIES.join(", "), MACHINES.join(", "))),
+    }
+}
+
+/// Words and bits per word in a RAM size like "16x8bit".
+pub fn ram_size(size: &str) -> Result<(u32, u32), String> {
+    let bad = || format!("ram: bad size \"{size}\" (like 16x8bit: 16 words of 8 bits; the words a power of two up to 1024, the bits up to 64)");
+    let (w, b) = size.strip_suffix("bit").and_then(|s| s.split_once('x')).ok_or_else(bad)?;
+    let (w, b): (u32, u32) = (w.parse().map_err(|_| bad())?, b.parse().map_err(|_| bad())?);
+    if w < 2 || w > 1024 || !w.is_power_of_two() || b < 1 || b > 64 {
+        return Err(bad());
+    }
+    Ok((w, b))
 }
 
 /// The number in a size like "16bit".

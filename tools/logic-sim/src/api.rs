@@ -23,8 +23,8 @@
 
 use crate::check::{check, Checked, Expect};
 use crate::circuit::{from_value, load, read_pins, Circuit};
-use crate::families::family;
-use crate::{delay, script, validate};
+use crate::families::{family, machine, MACHINES};
+use crate::{delay, memory, script, validate};
 use serde_json::{json, Value};
 use std::path::Path;
 use std::{fs, thread};
@@ -77,7 +77,36 @@ fn report(c: &Circuit, res: Checked) -> Value {
     })
 }
 
+/// A family with memory: random operations against the family's model.
+fn verify_memory(c: &Circuit, fam: &str, size: &str) -> Result<Value, String> {
+    let m = machine(fam, size)?;
+    let v = validate::validate(c);
+    let mut problems = v.problems;
+    let res = match memory::run(c, &m, 3000, 0x5EED) {
+        Ok(res) => res,
+        Err(e) => return Ok(json!({ "problems": [e], "warnings": v.warnings })),
+    };
+    if res.wrong > 0 {
+        problems.push(format!("{} of {} operations end with a wrong output: {}", res.wrong, res.operations, res.example.clone().unwrap_or_default()));
+    }
+    Ok(json!({
+        "gates": c.gates(),
+        "ticks": if m.ticks_is_read { res.read } else { res.write },
+        "read": res.read,
+        "write": res.write,
+        "setup": res.setup,
+        "verified": "sampled",
+        "tested": res.operations,
+        "wrong": res.wrong,
+        "problems": problems,
+        "warnings": v.warnings,
+    }))
+}
+
 fn verify(c: &Circuit, fam: &str, size: &str) -> Result<Value, String> {
+    if MACHINES.contains(&fam) {
+        return verify_memory(c, fam, size);
+    }
     let f = family(fam, size)?;
     let mut problems = vec![];
     if c.inputs.len() as u32 != f.bits {
