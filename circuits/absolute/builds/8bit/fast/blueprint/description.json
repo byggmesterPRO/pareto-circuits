@@ -1,0 +1,7 @@
+{
+  "description": "v1.0 | 142 gates | 3 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits\n\nDrops the sign of a 8-bit two's complement number.\n\nUse this to get the size of a signed number without its sign, for example the distance from a reference point or a speed without its direction.\n\nConnect the number to the input gates, least significant bit first. The top bit is the sign. The outputs give the size in the same bit order, read as an unsigned number, so the most negative number comes out correctly.\n\nInputs (yellow gates, first row, lowest bit first): the number = x 0-7.\nOutputs (green gates): result = x 0-7.\n\nProfile: fast, the build with the fewest ticks for this size.\nHow it works: Every output is one XOR gate over AND gates of plain inputs: 3 ticks.\nChecked on every possible input in a simulator. Gates include the input gates; ticks count the input gate too.\n\nOther sizes, the generator and the full explanation:\nhttps://github.com/byggmesterPRO/pareto-circuits/tree/main/circuits/absolute",
+  "localId": "47c48261-3bc3-4219-949b-56d5596f44b9",
+  "name": "Pareto Absolute 8bit Fast",
+  "type": "Blueprint",
+  "version": 0
+}
