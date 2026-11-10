@@ -39,6 +39,10 @@ Rules:
 - Run output (logs, checkpoints, simulation caches) goes in a `runs/` folder inside the optimizer and is git-ignored.
 - No API keys or machine-specific paths in committed files.
 
+For now each system's simulator and verifier sit in their own folder, `tools/bygg-logic-sim/` and
+`tools/niknal-logic-sim/`. The best parts of both become `tools/logic-sim/` in Rust, which is then the shared
+verifier.
+
 ## Builds
 
 A build is one finished, verified blueprint. Each one lives in its own slot:
