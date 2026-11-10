@@ -8,6 +8,13 @@
 //!
 //! The delays are measured on the way: a tick is counted from the moment an input is driven, so the input
 //! gate itself is the first tick, the same way the main README counts ticks for circuits without memory.
+//!
+//! That gives every operation all the time it wants. `pace` asks the other question: how often can operations
+//! come. An operation there is a fixed number of ticks, the period: the level inputs change at its start, the
+//! pulse (if there is one) comes `pulse_at` ticks later, and at its end, the moment before the next one
+//! starts, the outputs have to be what the model says. `pace` gives the shortest period that works, with the
+//! pulse wherever in the period it works. This is for a circuit with memory what balanced is for one without:
+//! there the period is 1.
 
 use crate::circuit::Circuit;
 use crate::families::Machine;
@@ -127,4 +134,94 @@ pub fn run(c: &Circuit, m: &Machine, operations: u64, seed: u64) -> Result<Outco
         out.wrong += bad.count_ones() as u64 + bad2.count_ones() as u64;
     }
     Ok(out)
+}
+
+/// How often operations can come (see the top of this file).
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub struct Pace {
+    /// Ticks from the start of one operation to the start of the next.
+    pub period: u64,
+    /// Ticks from the level inputs changing to the pulse, within an operation.
+    pub pulse_at: u64,
+}
+
+/// Operations in a row at a period: true if the outputs were right at the end of every one.
+fn paced(c: &Circuit, m: &Machine, pace: Pace, operations: u64, seed: u64) -> Result<bool, String> {
+    let mut sim = Sim::new(c, LANES);
+    let mut r = Random(seed | 1);
+    let mut states: Vec<Vec<u128>> = vec![(m.start)(); LANES];
+    let levels: Vec<u32> = (0..m.bits).filter(|b| !m.pulses.contains(b)).collect();
+    for e in &c.inputs {
+        sim.force(*e, &[0]);
+    }
+    sim.settle(LIMIT).ok_or(format!("still changing after {LIMIT} ticks with all inputs off"))?;
+    let mut pulsed = false;
+    for op in 0..operations {
+        let mut inputs = [0u128; LANES];
+        let mut words = vec![];
+        for &b in &levels {
+            let word = if op % 7 == 3 { r.word() & r.word() } else { r.word() };
+            words.push(word);
+            for (lane, x) in inputs.iter_mut().enumerate() {
+                *x |= ((word >> lane & 1) as u128) << b;
+            }
+        }
+        // one pulse, or none, in every copy
+        let mut masks = vec![0u64; m.pulses.len()];
+        if !m.pulses.is_empty() {
+            for (lane, x) in inputs.iter_mut().enumerate() {
+                let pick = (r.word() % (m.pulses.len() as u64 * 3 + 1)) as usize / 3;
+                if pick < m.pulses.len() {
+                    masks[pick] |= 1 << lane;
+                    *x |= 1u128 << m.pulses[pick];
+                }
+            }
+        }
+        let want: Vec<u128> = (0..LANES).map(|l| (m.step)(&mut states[l], inputs[l])).collect();
+        for t in 0..pace.period {
+            // a pulse is on for exactly one tick, also when that tick is the last of the operation
+            if pulsed {
+                m.pulses.iter().for_each(|&p| sim.force(c.inputs[p as usize], &[0]));
+                pulsed = false;
+            }
+            if t == 0 {
+                levels.iter().zip(&words).for_each(|(&b, &word)| sim.force(c.inputs[b as usize], &[word]));
+            }
+            if t == pace.pulse_at {
+                m.pulses.iter().zip(&masks).for_each(|(&p, &mask)| sim.force(c.inputs[p as usize], &[mask]));
+                pulsed = true;
+            }
+            sim.tick();
+        }
+        for (b, o) in c.outputs.iter().enumerate() {
+            let have = o.map_or(0, |o| sim.get(o)[0]);
+            let should = want.iter().enumerate().fold(0u64, |acc, (lane, w)| acc | ((w >> b & 1) as u64) << lane);
+            if have != should {
+                return Ok(false);
+            }
+        }
+    }
+    Ok(true)
+}
+
+/// Operations a period is tried on before it is looked at closer, and before it is believed.
+const QUICK: u64 = 200;
+const SURE: u64 = 3000;
+
+/// The shortest period at which operations in a row work, up to `most` ticks, and where in it the pulse goes
+/// (the earliest place that works). None if no period up to `most` works. This is what was seen to work on
+/// random operations, not a proof; and a longer period is not checked to work as well.
+pub fn pace(c: &Circuit, m: &Machine, most: u64, seed: u64) -> Result<Option<Pace>, String> {
+    if c.inputs.len() as u32 != m.bits || c.outputs.len() as u32 != m.out_bits {
+        return Err(format!("{} inputs and {} outputs, the family has {} and {}", c.inputs.len(), c.outputs.len(), m.bits, m.out_bits));
+    }
+    for period in 1..=most {
+        for pulse_at in 0..period {
+            let pace = Pace { period, pulse_at };
+            if paced(c, m, pace, QUICK, seed)? && paced(c, m, pace, SURE, seed.wrapping_add(1))? {
+                return Ok(Some(pace));
+            }
+        }
+    }
+    Ok(None)
 }

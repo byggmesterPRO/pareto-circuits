@@ -365,3 +365,69 @@ fn one_long_path_is_enough_to_be_unbalanced() {
     let latch = Circuit::from_netlist(&json!({"inputs": 2, "gates": [[4, [1, 3]], [4, [0, 2]]], "outputs": [2, 3]})).unwrap();
     assert_eq!(latch.balance(), None);
 }
+
+/// A circuit that is not balanced still keeps up with inputs that come slowly enough: every longest path
+/// minus shortest path plus one ticks. One tick faster and an output mixes two inputs.
+#[test]
+fn an_unbalanced_circuit_keeps_up_at_its_period() {
+    use logic_sim::stream::stream_every;
+    let c = ripple3().circuit();
+    let b = c.balance().unwrap();
+    assert_eq!((b.shortest, b.longest, b.period()), (2, 6, 5));
+    let res = stream_every(&c, 300, 5, 1).unwrap();
+    assert_eq!((res.wrong, res.tested), (0, 300 * 256));
+    assert!(stream_every(&c, 300, 4, 1).unwrap().wrong > 0);
+    // balanced, the period is 1
+    let balanced = logic_sim::balance::balance(&ripple3(), None).unwrap().circuit();
+    assert_eq!(balanced.balance().unwrap().period(), 1);
+}
+
+/// A 2 bit register, 3 gates a bit: the stored bit is an XOR gate wired to itself, which flips when the data
+/// differs from it and write is on. Inputs: data 0 and 1, write 2.
+fn register2() -> Circuit {
+    Circuit::from_netlist(&json!({"inputs": 3, "gates": [
+        [2, [3, 5]], [2, [0, 3]], [0, [4, 2]],
+        [2, [6, 8]], [2, [1, 6]], [0, [7, 2]],
+    ], "outputs": [3, 6]})).unwrap()
+}
+
+#[test]
+fn one_verify_for_both_kinds_of_family() {
+    use logic_sim::families::spec;
+    use logic_sim::verify::{verify, Timing};
+    // without memory: tried on every input, and its one delay is its longest path
+    let adder = spec("adder", "3bit").unwrap();
+    assert!(!adder.has_memory() && adder.pins() == (6, 4));
+    let res = verify(&ripple3().circuit(), &adder, 2).unwrap();
+    assert!(res.exhaustive && res.wrong == 0 && res.problem.is_none());
+    assert_eq!(res.ticks, 6);
+    assert_eq!(res.timing, Timing { read: 6, write: None, setup: None, period: Some(5), pulse_at: None });
+    // with memory: random operations, and a delay for each thing that can be waited for
+    let register = spec("register", "2bit").unwrap();
+    assert!(register.has_memory() && register.pins() == (3, 2));
+    let res = verify(&register2(), &register, 2).unwrap();
+    assert!(!res.exhaustive && res.wrong == 0 && res.problem.is_none());
+    assert_eq!(res.ticks, 3);
+    assert_eq!(res.timing, Timing { read: 0, write: Some(3), setup: Some(2), period: Some(4), pulse_at: Some(1) });
+    // the wrong circuit for a family is a problem, the wrong pins cannot be checked at all
+    assert!(verify(&ripple3().circuit(), &spec("subtractor", "3bit").unwrap(), 2).unwrap().problem.is_some());
+    assert!(verify(&register2(), &adder, 2).is_err());
+    assert!(verify(&ripple3().circuit(), &register, 2).is_err());
+}
+
+#[test]
+fn how_often_a_register_can_be_written() {
+    use logic_sim::families::machine;
+    use logic_sim::memory::{pace, Pace};
+    let (c, m) = (register2(), machine("register", "2bit").unwrap());
+    // the data, the pulse a tick later (the data has one gate more to pass), the new number 3 ticks after that
+    assert_eq!(pace(&c, &m, 20, 7).unwrap(), Some(Pace { period: 4, pulse_at: 1 }));
+    // it does not work any faster
+    assert_eq!(pace(&c, &m, 3, 7).unwrap(), None);
+    // a register that stores the wrong thing has no pace at all: here bit 1 takes its data from bit 0
+    let broken = Circuit::from_netlist(&json!({"inputs": 3, "gates": [
+        [2, [3, 5]], [2, [0, 3]], [0, [4, 2]],
+        [2, [6, 8]], [2, [0, 6]], [0, [7, 2]],
+    ], "outputs": [3, 6]})).unwrap();
+    assert_eq!(pace(&broken, &m, 20, 7).unwrap(), None);
+}

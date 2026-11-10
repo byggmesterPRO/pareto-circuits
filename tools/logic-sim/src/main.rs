@@ -17,7 +17,8 @@ A <circuit> is a build slot folder, a blueprint.json or a netlist.json.
   logic-sim check <circuit> --cases <file.json>   check chosen inputs: [[input, output], ...]
   logic-sim count <circuit>                       gates, timers, ticks, and is it balanced
   logic-sim delay <circuit> [jumps]               worst output delay seen over random input changes
-  logic-sim stream <circuit> [steps]              new inputs every tick: are the outputs right, ticks later
+  logic-sim stream <circuit> [steps] [every]      new inputs every tick: are the outputs right, ticks later
+                                                  (every: hold each input this many ticks)
   logic-sim balance <circuit> <out.json> [ticks]  pad with timers until every path is the same; writes a netlist
   logic-sim validate <circuit>                    can it be built in the game
   logic-sim run <circuit> <script>                run a test script (set, tick, check) on the tick simulator
@@ -69,6 +70,9 @@ fn request(mut args: Vec<String>) -> Result<Value, String> {
         "stream" => {
             if let Some(n) = args.get(2).and_then(|n| n.parse::<u64>().ok()) {
                 req.insert("steps".into(), json!(n));
+            }
+            if let Some(n) = args.get(3).and_then(|n| n.parse::<u64>().ok()) {
+                req.insert("every".into(), json!(n));
             }
         }
         "balance" => {

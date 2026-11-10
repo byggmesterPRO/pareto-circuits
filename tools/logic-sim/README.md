@@ -28,7 +28,7 @@ JSON and exits 1 if there is a problem. `logic-sim help` lists them.
 | `check <circuit> --cases <file>` | Checks chosen inputs: `[[input, output], ...]` |
 | `count <circuit>` | Gates, timers and ticks, and whether it is balanced |
 | `delay <circuit> [jumps]` | Worst output delay seen over random input changes |
-| `stream <circuit> [steps]` | New inputs every tick: are the outputs right, `ticks` ticks later |
+| `stream <circuit> [steps] [every]` | New inputs every tick (or every `every` ticks): are the outputs right, `ticks` ticks later |
 | `balance <circuit> <out.json> [ticks]` | Pads with timers until every path is the same; writes a netlist |
 | `validate <circuit>` | Can it be built in the game |
 | `run <circuit> <script>` | Runs a test script on the tick simulator |
@@ -70,6 +70,10 @@ comes out every tick, `ticks` ticks later. It is not the `balanced` build profil
   tick), so any delay up to 2400 ticks is one part. Readers of a signal that need the same delay share the
   timer. Give `ticks` to balance at more than the longest path.
 
+A circuit that is not balanced still keeps up with inputs that come slowly enough. `count` gives that as
+`period`: the longest path minus the shortest, plus 1. New inputs every `period` ticks, and the outputs are
+right `ticks` ticks after each. `stream <circuit> <steps> <every>` tests it. Balanced is a period of 1.
+
 How many timers it takes depends on where the delays go: a gate off the longest path can sit early with the
 delay behind it, or late with the delay in front. `balance` searches for the placing with the fewest timers
 (`src/balance.rs` says how). The count it gets is a best-known, not a proven minimum.
@@ -77,6 +81,33 @@ delay behind it, or late with the delay in front. `balance` searches for the pla
 A netlist holds timers as `"timers": [[signal it reads, setting], ...]`. They are numbered after the gates:
 signal `inputs + gates + t` is timer `t`. In a blueprint a timer takes one cell, like a gate, and stands two
 blocks tall in it.
+
+## With and without memory
+
+A family is one of two kinds, and `src/families.rs` gives either as a `Spec`: a function of the inputs, or a
+model with a state. `verify` (`src/verify.rs`) takes a circuit and a `Spec` and is the one place where the
+two are told apart: without memory the circuit is tried on every input, with memory it is run through random
+operations on the tick simulator. The reply has the same fields for both.
+
+What differs is the timing, because one delay is not enough for a circuit with memory:
+
+| Field | Without memory | With memory |
+|---|---|---|
+| `read` | the longest path (the same as `ticks`) | from a data or address input to the outputs |
+| `write` | null | from a pulse to the outputs |
+| `setup` | null | how long the inputs take to settle inside, before a pulse |
+| `period` | longest path - shortest + 1 | the shortest gap between operations that works |
+| `pulse_at` | null | where in that gap the pulse goes |
+| `ticks` | `read` | `read` or `write`, whichever the family README names |
+
+`period` is the answer to "how often" for both kinds. With memory, an operation is `period` ticks long: the
+data and address change at its start, the pulse (if there is one) comes `pulse_at` ticks later, and at its
+end the outputs have to be what the model says. `verify` tries periods from 1 up and gives the first that
+works on 3000 random operations in a row, over 64 copies. It is what was seen to work, not a proof.
+
+Whether a circuit has memory is never declared: it has, if a part reads itself around a loop
+(`Circuit::feed_forward`). Timers do not make memory. A circuit of gates and timers without a loop is still
+a function of its inputs, only later.
 
 ## From Python, or any other language
 
@@ -122,7 +153,7 @@ works for circuits with memory and timers. Checking against a table, cases or an
 - 30 random circuits with feedback loops, self-wired gates and timers, 200 ticks each with random inputs:
   the same state for every part on every tick
 
-`cargo test` has 20 tests here: a half adder, a NOR latch, timers (one, and against rows of gates), balancing,
+`cargo test` has 23 tests here: a half adder, a NOR latch, timers (one, and against rows of gates), balancing,
 independent lanes, tables, cases, circuit
 against circuit, parts in any order, more than 64 output bits, 128 input bits, the double dabble reference,
 doubling a gate that drives too many, and writing a blueprint and reading it back.

@@ -10,7 +10,7 @@
 //! | check    | one of "table", "cases", "reference" (see below)         |
 //! | count    |                                                          |
 //! | delay    | "jumps" (default 200000)                                 |
-//! | stream   | "steps" (default 2000)                                   |
+//! | stream   | "steps" (default 2000), "every" (default 1)              |
 //! | balance  | "ticks" (default: the longest path), "out" (a file)      |
 //! | validate |                                                          |
 //! | run      | "script" (the text) or "script_file"                     |
@@ -25,9 +25,9 @@
 
 use crate::check::{check, Checked, Expect};
 use crate::circuit::{from_value, load, read_pins, Circuit};
-use crate::families::{family, machine, MACHINES};
+use crate::families::spec;
 use crate::build::Netlist;
-use crate::{balance, delay, memory, script, stream, validate};
+use crate::{balance, delay, script, stream, validate, verify};
 use serde_json::{json, Value};
 use std::path::Path;
 use std::{fs, thread};
@@ -71,6 +71,7 @@ fn counts(c: &Circuit) -> Value {
         "ticks": c.ticks(),
         "balanced": b.map(|b| b.balanced),
         "shortest_path": b.map(|b| b.shortest),
+        "period": b.map(|b| b.period()),
     })
 }
 
@@ -95,48 +96,34 @@ fn report(c: &Circuit, res: Checked) -> Value {
     })
 }
 
-/// A family with memory: random operations against the family's model.
-fn verify_memory(c: &Circuit, fam: &str, size: &str) -> Result<Value, String> {
-    let m = machine(fam, size)?;
+/// Check a circuit against its family, of either kind. The reply has the same fields for both, and the
+/// timing a family without memory does not have is null.
+fn verify(c: &Circuit, fam: &str, size: &str) -> Result<Value, String> {
     let v = validate::validate(c);
     let mut problems = v.problems;
-    let res = match memory::run(c, &m, 3000, 0x5EED) {
+    let res = match verify::verify(c, &spec(fam, size)?, threads()) {
         Ok(res) => res,
         Err(e) => return Ok(json!({ "problems": [e], "warnings": v.warnings })),
     };
-    if res.wrong > 0 {
-        problems.push(format!("{} of {} operations end with a wrong output: {}", res.wrong, res.operations, res.example.clone().unwrap_or_default()));
-    }
+    problems.extend(res.problem.clone());
+    let t = res.timing;
     Ok(json!({
         "gates": c.gates(),
-        "ticks": if m.ticks_is_read { res.read } else { res.write },
-        "read": res.read,
-        "write": res.write,
-        "setup": res.setup,
-        "verified": "sampled",
-        "tested": res.operations,
+        "timers": c.timers(),
+        "ticks": res.ticks,
+        "balanced": c.balance().map(|b| b.balanced),
+        "read": t.read,
+        "write": t.write,
+        "setup": t.setup,
+        "period": t.period,
+        "pulse_at": t.pulse_at,
+        "verified": res.verified(),
+        "tested": res.tested,
         "wrong": res.wrong,
+        "example": res.example.map(big),
         "problems": problems,
         "warnings": v.warnings,
     }))
-}
-
-fn verify(c: &Circuit, fam: &str, size: &str) -> Result<Value, String> {
-    if MACHINES.contains(&fam) {
-        return verify_memory(c, fam, size);
-    }
-    let f = family(fam, size)?;
-    let mut problems = vec![];
-    if c.inputs.len() as u32 != f.bits {
-        problems.push(format!("{} inputs, {fam} {size} has {}", c.inputs.len(), f.bits));
-    }
-    if c.outputs.len() as u32 != f.out_bits {
-        problems.push(format!("{} outputs, {fam} {size} has {}", c.outputs.len(), f.out_bits));
-    }
-    if !problems.is_empty() {
-        return Ok(json!({ "problems": problems, "warnings": [] }));
-    }
-    Ok(report(c, check(c, &f.expect(), threads(), &f.hard)?))
 }
 
 fn run(req: &Value) -> Result<Value, String> {
@@ -202,12 +189,13 @@ fn run(req: &Value) -> Result<Value, String> {
         }
         "stream" => {
             need_pins()?;
-            let res = stream::stream(&c, req["steps"].as_u64().unwrap_or(2000) as usize, 1)?;
+            let every = req["every"].as_u64().unwrap_or(1) as u32;
+            let res = stream::stream_every(&c, req["steps"].as_u64().unwrap_or(2000) as usize, every, 1)?;
             let mut v = counts(&c);
             v["tested"] = json!(res.tested);
             v["wrong"] = json!(res.wrong);
             v["problems"] = match res.example {
-                Some(e) => json!([format!("{} of {} inputs sent one per tick give a wrong output {} ticks later: {e}", res.wrong, res.tested, res.ticks)]),
+                Some(e) => json!([format!("{} of {} inputs, a new one every {every} ticks, give a wrong output {} ticks later: {e}", res.wrong, res.tested, res.ticks)]),
                 None => json!([]),
             };
             Ok(v)

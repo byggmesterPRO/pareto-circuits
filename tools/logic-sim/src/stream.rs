@@ -4,6 +4,10 @@
 //! never mixes the inputs of two different ticks. This runs the circuit on the tick simulator with new random
 //! inputs on every tick, and checks on every tick that the outputs are what the inputs of `ticks` ticks ago
 //! settle on. `Circuit::balance` says the same from the wiring alone; this is the test of it.
+//!
+//! A circuit that is not balanced keeps up with slower inputs: new ones every `Balance::period` ticks. With
+//! `every` above 1 the inputs are held that long, and the outputs are checked once per input, `ticks` ticks
+//! after it was driven.
 
 use crate::check::Flat;
 use crate::circuit::Circuit;
@@ -25,6 +29,14 @@ pub struct Streamed {
 }
 
 pub fn stream(c: &Circuit, steps: usize, seed: u64) -> Result<Streamed, String> {
+    stream_every(c, steps, 1, seed)
+}
+
+/// The same with each input held for `every` ticks.
+pub fn stream_every(c: &Circuit, steps: usize, every: u32, seed: u64) -> Result<Streamed, String> {
+    if every == 0 || steps == 0 {
+        return Err("stream needs at least one input, and at least a tick for each".into());
+    }
     let flat = Flat::new(c)?;
     let ticks = c.ticks().ok_or("no input reaches an output")?;
     let (bits, w) = (c.inputs.len(), LANES / 64);
@@ -36,22 +48,24 @@ pub fn stream(c: &Circuit, steps: usize, seed: u64) -> Result<Streamed, String> 
         s.wrapping_mul(0x2545F4914F6CDD1D)
     };
     let mut sim = Sim::new(c, LANES);
-    let mut sent: VecDeque<Vec<u64>> = VecDeque::new();
+    let mut sent: VecDeque<(u64, Vec<u64>)> = VecDeque::new();
     let mut vals = vec![0u64; flat.slots() * w];
     let (mut wrong, mut example) = (0u64, None);
-    for t in 1..=steps as u64 + ticks as u64 - 1 {
-        let x: Vec<u64> = (0..bits * w).map(|_| word()).collect();
-        for (i, &e) in c.inputs.iter().enumerate() {
-            sim.force(e, &x[i * w..(i + 1) * w]);
+    for t in 1..=(steps as u64 - 1) * every as u64 + ticks as u64 {
+        if (t - 1) % every as u64 == 0 && (t - 1) / (every as u64) < steps as u64 {
+            let x: Vec<u64> = (0..bits * w).map(|_| word()).collect();
+            for (i, &e) in c.inputs.iter().enumerate() {
+                sim.force(e, &x[i * w..(i + 1) * w]);
+            }
+            // the input gates show these inputs after this tick, tick 1 of their way through, and the
+            // outputs show them `ticks` - 1 ticks after that
+            sent.push_back((t + ticks as u64 - 1, x));
         }
-        sent.push_back(x);
         sim.tick();
-        // the input gates show these inputs now, at tick 1 of their way through; the outputs show the inputs
-        // sent `ticks` - 1 ticks before
-        if sent.len() < ticks as usize {
+        if sent.front().is_none_or(|s| s.0 != t) {
             continue;
         }
-        let x = sent.pop_front().unwrap();
+        let x = sent.pop_front().unwrap().1;
         vals[..bits * w].copy_from_slice(&x);
         flat.eval(&mut vals, w);
         let mut bad = vec![0u64; w];

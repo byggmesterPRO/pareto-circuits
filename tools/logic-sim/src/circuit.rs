@@ -51,6 +51,15 @@ pub struct Balance {
     pub longest: u32,
 }
 
+impl Balance {
+    /// How often the inputs can change: every this many ticks. The outputs are then right for at least one
+    /// tick in every round, `longest` ticks after the inputs were driven: by then the longest path has
+    /// brought the new inputs, and the shortest has not yet brought the next. 1 for a balanced circuit.
+    pub fn period(&self) -> u32 {
+        self.longest - self.shortest + 1
+    }
+}
+
 impl Circuit {
     pub fn len(&self) -> usize {
         self.kind.len()

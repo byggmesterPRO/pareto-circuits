@@ -21,6 +21,9 @@ The gates wired to themselves start out off, so the memory starts at 0.
 `ticks` is the time from the write pulse to the new number on the outputs: 3. The data has to be steady for
 2 ticks before the pulse and until the tick after it.
 
+Writes can follow each other 4 ticks apart: new data, the write pulse one tick after it, and the number is
+on the outputs when the 4 ticks are over.
+
 A tick is counted from the moment an input is driven, so the input gate itself is the first tick.
 
 ## Records

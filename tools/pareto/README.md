@@ -45,6 +45,10 @@ slots:
 | `--max-ticks n` | at most this slow |
 | `--max-gates n` | at most this big |
 | `--balanced` | every path the same number of ticks, so the inputs can change every tick |
+| `--max-period n` | new inputs, or operations, at least this often: every n ticks |
+| `--max-read n` | with memory: at most this long from an input to the outputs |
+| `--max-write n` | with memory: at most this long from a pulse to the outputs |
+| `--max-setup n` | with memory: the inputs steady at most this long before a pulse |
 | `--fastest` | the fastest that fits; without it, the smallest |
 | `--out <folder>` | write it: `blueprint.json` and `description.json` (the folder can go into the game's Blueprints folder), `netlist.json`, `pins.json` |
 
@@ -59,6 +63,12 @@ for it. The two frontiers are not the same designs: one that is small as it is c
 
 Two designs with the same gates and ticks are told apart by that balanced size: the one that needs fewer
 parts balanced wins, in the profiles too.
+
+A family with memory has more delays than one, so its frontier has more axes: read, write, setup, period and
+gates (`tools/logic-sim/README.md` says what each is). A design is on it unless another is at least as good
+on all five. `frontier` prints them all, and `pick` takes a wish for each. `--balanced` is not for these;
+`--max-period` is the question that takes its place. The `ticks` in a build's `meta.json` stays the one
+number the family README names.
 
 Best means best of what the generators offer. Nothing here proves that no smaller circuit exists, and the
 timer count of a balanced design is a search result too.
@@ -75,6 +85,9 @@ timer count of a balanced design is a search result too.
    `tools/pareto/src/main.rs`.
 4. `cargo test --release -p pareto` then checks every design of every family on every input, at every size
    with 16 input bits or fewer.
+
+Nothing in `pareto` asks for a family by name whether it has memory. A design is handed to
+`logic_sim::verify` with the family's spec, and comes back measured either way.
 
 A family with memory is a `Machine` in `families.rs` instead: which inputs are one-tick pulses, and a model
 that says what the outputs should be after an operation. Its generator makes loops with `Builder::later` and

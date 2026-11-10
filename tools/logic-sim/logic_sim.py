@@ -67,8 +67,9 @@ class LogicSim:
     def delay(self, circuit, jumps=200_000, pins=None):
         return self.request("delay", circuit, jumps=jumps, pins=pins)
 
-    def stream(self, circuit, steps=2000, pins=None):
-        return self.request("stream", circuit, steps=steps, pins=pins)
+    def stream(self, circuit, steps=2000, every=1, pins=None):
+        """New inputs every `every` ticks: are the outputs right, `ticks` ticks after each."""
+        return self.request("stream", circuit, steps=steps, every=every, pins=pins)
 
     def balance(self, circuit, ticks=None, out=None, pins=None):
         """The balanced netlist is reply["netlist"], or goes to the file `out`."""
