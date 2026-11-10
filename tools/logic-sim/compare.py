@@ -1,6 +1,6 @@
 """Do bygg-logic-sim, niknal-logic-sim and logic-sim agree, and how fast is each.
 
-    (cd tools/logic-sim && cargo build --release)
+    cargo build --release
     python tools/logic-sim/compare.py
 
 Part 1: the double dabble builds and generator outputs, checked by all three.
@@ -18,15 +18,15 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tools" / "bygg-logic-sim"))
 sys.path.insert(0, str(REPO / "tools" / "niknal-logic-sim"))
-sys.path.insert(0, str(REPO / "circuits" / "double-dabble" / "generator"))
 import netlist
 import verify
 from sim import Sim as ByggSim
 from circuitlib import Circuit, Direction, GateType, IVec3, Simulation
 from families import FAMILIES
-from generate import generate
 
-EXE = REPO / "tools" / "logic-sim" / "target" / "release" / ("logic-sim.exe" if sys.platform == "win32" else "logic-sim")
+EXT = ".exe" if sys.platform == "win32" else ""
+EXE = REPO / "target" / "release" / f"logic-sim{EXT}"
+PARETO = REPO / "target" / "release" / f"pareto{EXT}"
 TYPES = [GateType.AND, GateType.OR, GateType.XOR, GateType.NAND, GateType.NOR, GateType.XNOR]
 TMP = Path(tempfile.mkdtemp())
 
@@ -40,6 +40,13 @@ def logic_sim(*args):
         t = time.perf_counter() - t0
         best = t if best is None else min(best, t)
     return json.loads(out), best
+
+
+def generate(bits):
+    """The double dabble generator's plain chain, as a netlist."""
+    path = TMP / f"gen{bits}.json"
+    subprocess.run([str(PARETO), "netlist", "double-dabble", f"{bits}bit", "chain-7", str(path)], check=True, capture_output=True, cwd=REPO)
+    return netlist.load(path)
 
 
 def niknal_circuit(net):

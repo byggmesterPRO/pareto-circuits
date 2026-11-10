@@ -1,0 +1,10 @@
+[package]
+name = "pareto"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+logic-sim = { path = "../logic-sim" }
+adder-generator = { path = "../../circuits/adder/generator" }
+double-dabble-generator = { path = "../../circuits/double-dabble/generator" }
+serde_json = "1"
