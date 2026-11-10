@@ -54,11 +54,13 @@ works for circuits with memory and timers. In both Python simulators it was one 
 
 ## Speed
 
-Measured on one machine with 20 threads. logic-sim's small numbers are mostly the program starting.
+Measured on one machine with 20 threads. logic-sim's times are whole program runs, of which about 0.03 s is
+starting up and reading the file. The Python times are the checking step alone, inside a Python that is already
+running; as a whole program the bygg verifier takes 0.35 s on the first row.
 
 | Check | bygg | niknal | logic-sim |
 |---|---|---|---|
-| 12bit fast build, every input | 0.05 s | 0.65 s | 0.12 s |
+| 12bit fast build, every input | 0.05 s | 0.65 s | 0.03 s |
 | generator 16bit, every input | 5.5 s | 8.5 s for 2000 of the 65536 inputs | 0.05 s |
 | generator 24bit, every input | | | 0.45 s |
 | generator 28bit, every input | | | 2.9 s |
