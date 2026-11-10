@@ -1,0 +1,39 @@
+{
+  "authors": [
+    "byggmesterPRO"
+  ],
+  "date": "2026-11-10",
+  "family": "alu",
+  "gates": 88,
+  "notes": "Generator design: ripple.",
+  "optimal": "best-known",
+  "pins": {
+    "inputs": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "outputs": [
+      51,
+      62,
+      73,
+      83,
+      87
+    ]
+  },
+  "profile": "small",
+  "size": "4bit",
+  "source": "generator",
+  "ticks": 13,
+  "verified": "exhaustive",
+  "version": "1.0",
+  "workshop": ""
+}
