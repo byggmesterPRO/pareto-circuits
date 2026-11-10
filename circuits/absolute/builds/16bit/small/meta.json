@@ -1,0 +1,55 @@
+{
+  "authors": [
+    "byggmesterPRO"
+  ],
+  "date": "2026-11-10",
+  "family": "absolute",
+  "gates": 61,
+  "notes": "Generator design: flat.",
+  "optimal": "best-known",
+  "pins": {
+    "inputs": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "outputs": [
+      16,
+      18,
+      21,
+      24,
+      27,
+      30,
+      33,
+      36,
+      39,
+      42,
+      45,
+      48,
+      51,
+      54,
+      57,
+      60
+    ]
+  },
+  "profile": "small",
+  "size": "16bit",
+  "source": "generator",
+  "ticks": 4,
+  "verified": "exhaustive",
+  "version": "1.0",
+  "workshop": ""
+}
