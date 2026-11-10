@@ -1,0 +1,33 @@
+{
+  "authors": [
+    "byggmesterPRO"
+  ],
+  "date": "2026-11-10",
+  "family": "barrel-shifter",
+  "gates": 22,
+  "notes": "Generator design: normal-form.",
+  "optimal": "best-known",
+  "pins": {
+    "inputs": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "outputs": [
+      9,
+      13,
+      17,
+      21
+    ]
+  },
+  "profile": "balanced",
+  "size": "4bit",
+  "source": "generator",
+  "ticks": 3,
+  "verified": "exhaustive",
+  "version": "1.0",
+  "workshop": ""
+}
