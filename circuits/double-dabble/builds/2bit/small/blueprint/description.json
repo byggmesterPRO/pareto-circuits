@@ -1,5 +1,5 @@
 {
-  "description": "v1.0 | 2 gates | 1 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits",
+  "description": "v1.0 | 2 gates | 1 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits\n\nTurns a 2-bit binary number into decimal digits (BCD).\n\nUse this in a creation that shows a binary number as ordinary decimal digits, such as a calculator readout. Connect its outputs to seven-segment displays so players can read the value.\n\nConnect the binary number to the input gates, least significant bit first. Each decimal digit comes out as its own group of bits, least significant bit first within the group, with the ones digit first, then the tens and the higher digits.\n\nInputs (yellow gates, first row, lowest bit first): the number = x 0-1.\nOutputs (green gates): 1 digits of 4 bits, ones digit first, from x 0.\n\nProfile: small, the build with the fewest gates for this size.\nHow it works: A chain of small add-3 cells, each found by exact search.\nChecked on every possible input in a simulator. Gates include the input gates; ticks count the input gate too.\n\nOther sizes, the generator and the full explanation:\nhttps://github.com/byggmesterPRO/pareto-circuits/tree/main/circuits/double-dabble",
   "localId": "1fdb1179-a554-4480-b742-31b0361c3b64",
   "name": "Pareto Double Dabble 2bit Small",
   "type": "Blueprint",

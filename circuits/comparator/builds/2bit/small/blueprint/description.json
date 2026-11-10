@@ -1,5 +1,5 @@
 {
-  "description": "v1.0 | 13 gates | 5 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits",
+  "description": "v1.0 | 13 gates | 5 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits\n\nCompares two 2-bit numbers.\n\nUse this to compare two numbers in a creation, such as checking an entered code against a stored one for a combination lock, or switching a lamp on once a sensor reading passes a set level.\n\nPut the first number into the first group of inputs and the second number into the second group, with the lowest value input first in each group. Exactly one output is on: the first for smaller, the second for equal, the third for larger. Both numbers are unsigned.\n\nInputs (yellow gates, first row, lowest bit first): a = x 0-1, b = x 2-3.\nOutputs (green gates): a < b = x 0, a = b = x 1, a > b = x 2.\n\nProfile: small, the build with the fewest gates for this size.\nHow it works: One AND gate per bit position; the third output is 'neither of the others'.\nChecked on every possible input in a simulator. Gates include the input gates; ticks count the input gate too.\n\nOther sizes, the generator and the full explanation:\nhttps://github.com/byggmesterPRO/pareto-circuits/tree/main/circuits/comparator",
   "localId": "66114093-e35f-45bf-982d-c6f88c88a0cd",
   "name": "Pareto Comparator 2bit Small",
   "type": "Blueprint",

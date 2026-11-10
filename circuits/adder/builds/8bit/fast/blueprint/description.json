@@ -1,5 +1,5 @@
 {
-  "description": "v1.0 | 68 gates | 4 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits",
+  "description": "v1.0 | 68 gates | 4 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits\n\nAdds two 8-bit numbers.\n\nUse this to add two numbers in a creation, such as the sum in a calculator, a total on a score display, or the arithmetic inside a computer built from logic.\n\nFeed it two binary numbers of the same width, lowest bit first. The sum comes out on the result outputs, and the carry output switches on when the sum does not fit. There is no carry input.\n\nInputs (yellow gates, first row, lowest bit first): a = x 0-7, b = x 8-15.\nOutputs (green gates): result = x 0-7, carry = x 8.\n\nProfile: fast, the build with the fewest ticks for this size.\nHow it works: Every bit sees its carry in one step, so the ticks do not grow with the size.\nChecked on every possible input in a simulator. Gates include the input gates; ticks count the input gate too.\n\nOther sizes, the generator and the full explanation:\nhttps://github.com/byggmesterPRO/pareto-circuits/tree/main/circuits/adder",
   "localId": "d2c33f16-7a32-40ea-80e1-34df56c4d9e3",
   "name": "Pareto Adder 8bit Fast",
   "type": "Blueprint",

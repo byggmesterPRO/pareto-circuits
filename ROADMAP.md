@@ -5,23 +5,15 @@ builds at its sizes, and a README with pins and records.
 
 ## Done
 
-`adder`, `barrel-shifter`, `comparator`, `counter`, `decoder`, `demultiplexer`, `double-dabble`,
-`multiplexer`, `multiplier`, `ram`, `register`, `seven-segment`, `subtractor`.
+`absolute`, `adder`, `adder-subtractor`, `alu`, `barrel-shifter`, `comparator`, `counter`, `decoder`,
+`decrementer`, `demultiplexer`, `divider`, `double-dabble`, `incrementer`, `multiplexer`, `multiplier`,
+`negate`, `ram`, `register`, `seven-segment`, `square`, `square-root`, `subtractor`.
 
 `counter`, `ram` and `register` have memory. They take one-tick pulses, and are checked by random operations
 against a model on the tick simulator (`tools/logic-sim/src/memory.rs`). Each family README says what its
 `ticks` means.
 
 ## Asked for
-
-Arithmetic, no memory:
-
-- adder-subtractor in one, with a mode pin
-- incrementer and decrementer
-- divider (quotient and remainder)
-- negate and absolute value (two's complement)
-- square, and square root
-- ALU: add, subtract, and, or, xor, shift, picked by an opcode
 
 Converting and encoding:
 

@@ -1,5 +1,5 @@
 {
-  "description": "v1.0 | 77 gates | 4 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits",
+  "description": "v1.0 | 77 gates | 4 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits\n\nTakes b from a, two 8-bit numbers.\n\nUse this to take one number away from another, such as the change after a purchase or the health left in a game.\n\nEnter the first number, then the second, which is taken away from it. Both are binary, lowest bit first. The difference comes out on the result outputs. If the second is larger, the result wraps around in two's complement and the borrow output switches on. There is no borrow input.\n\nInputs (yellow gates, first row, lowest bit first): a = x 0-7, b = x 8-15.\nOutputs (green gates): result = x 0-7, borrow (a < b) = x 8.\n\nProfile: fast, the build with the fewest ticks for this size.\nHow it works: Every bit sees its carry in one step, so the ticks do not grow with the size.\nChecked on every possible input in a simulator. Gates include the input gates; ticks count the input gate too.\n\nOther sizes, the generator and the full explanation:\nhttps://github.com/byggmesterPRO/pareto-circuits/tree/main/circuits/subtractor",
   "localId": "7042911f-7c99-4db8-ac99-094504967134",
   "name": "Pareto Subtractor 8bit Fast",
   "type": "Blueprint",

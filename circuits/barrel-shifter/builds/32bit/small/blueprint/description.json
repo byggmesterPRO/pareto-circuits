@@ -1,5 +1,5 @@
 {
-  "description": "v1.0 | 391 gates | 8 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits",
+  "description": "v1.0 | 391 gates | 8 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits\n\nShifts a 32-bit number up by 0 to 31 places.\n\nUse this to move a binary number up by a chosen amount, such as scaling it by a power of two or placing a bit field at a set position.\n\nConnect the number to the input gates, least significant bit first, then the shift amount, also least significant bit first. The outputs give the shifted number in the same order. Zeros come in at the bottom, and bits shifted past the top are lost.\n\nInputs (yellow gates, first row, lowest bit first): the number = x 0-31, places = x 32-36.\nOutputs (green gates): result = x 0-31.\n\nProfile: small, the build with the fewest gates for this size.\nHow it works: The amount is taken a few bits at a time, one stage per group.\nChecked on about a million inputs in a simulator. Gates include the input gates; ticks count the input gate too.\n\nOther sizes, the generator and the full explanation:\nhttps://github.com/byggmesterPRO/pareto-circuits/tree/main/circuits/barrel-shifter",
   "localId": "6004c707-db70-4488-a01a-e08d61cd8480",
   "name": "Pareto Barrel Shifter 32bit Small",
   "type": "Blueprint",

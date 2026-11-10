@@ -114,6 +114,8 @@ Set these in `description.json`, and use the same title on the Workshop:
 - Description, first line: `v1.0 | 315 gates | 3 ticks`, followed by the repo link.
 - Keep `localId` (and the Workshop `fileId` once it has one) unchanged between versions, so the Workshop item is updated in place and not duplicated.
 
+`python tools/workshop/cards.py` writes both for every build, from `meta.json`: the description (what it does, the pins, the profile, how it works, and the link to the family) and `icon.png` (the same in a picture, with the build's own layout). Run it after writing a slot, then the build can be posted from the game as it is.
+
 Each family README keeps a records table of its current builds:
 
 | Size | Profile | Version | Gates | Ticks | Workshop |

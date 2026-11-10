@@ -1,5 +1,5 @@
 {
-  "description": "v1.0 | 7 gates | 3 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits",
+  "description": "v1.0 | 7 gates | 3 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits\n\nShifts a 2-bit number up by 0 to 1 places.\n\nUse this to move a binary number up by a chosen amount, such as scaling it by a power of two or placing a bit field at a set position.\n\nConnect the number to the input gates, least significant bit first, then the shift amount, also least significant bit first. The outputs give the shifted number in the same order. Zeros come in at the bottom, and bits shifted past the top are lost.\n\nInputs (yellow gates, first row, lowest bit first): the number = x 0-1, places = x 2.\nOutputs (green gates): result = x 0-1.\n\nProfile: fast, the build with the fewest ticks for this size.\nHow it works: Every output is one XOR gate over AND gates of plain inputs: 3 ticks.\nChecked on every possible input in a simulator. Gates include the input gates; ticks count the input gate too.\n\nOther sizes, the generator and the full explanation:\nhttps://github.com/byggmesterPRO/pareto-circuits/tree/main/circuits/barrel-shifter",
   "localId": "692a76ae-a732-484c-8f6a-7142bde00d00",
   "name": "Pareto Barrel Shifter 2bit Fast",
   "type": "Blueprint",

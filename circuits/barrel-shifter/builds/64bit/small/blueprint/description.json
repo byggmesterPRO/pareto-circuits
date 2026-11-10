@@ -1,5 +1,5 @@
 {
-  "description": "v1.0 | 889 gates | 8 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits",
+  "description": "v1.0 | 889 gates | 8 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits\n\nShifts a 64-bit number up by 0 to 63 places.\n\nUse this to move a binary number up by a chosen amount, such as scaling it by a power of two or placing a bit field at a set position.\n\nConnect the number to the input gates, least significant bit first, then the shift amount, also least significant bit first. The outputs give the shifted number in the same order. Zeros come in at the bottom, and bits shifted past the top are lost.\n\nInputs (yellow gates, first row, lowest bit first): the number = x 0-63, places = x 64-69.\nOutputs (green gates): result = x 0-63.\n\nProfile: small, the build with the fewest gates for this size.\nHow it works: The amount is taken a few bits at a time, one stage per group.\nChecked on about a million inputs in a simulator. Gates include the input gates; ticks count the input gate too.\n\nOther sizes, the generator and the full explanation:\nhttps://github.com/byggmesterPRO/pareto-circuits/tree/main/circuits/barrel-shifter",
   "localId": "61e6d8b0-eb4e-468a-80e9-4d02603dd528",
   "name": "Pareto Barrel Shifter 64bit Small",
   "type": "Blueprint",

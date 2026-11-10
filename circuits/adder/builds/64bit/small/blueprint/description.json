@@ -1,5 +1,5 @@
 {
-  "description": "v1.0 | 382 gates | 128 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits",
+  "description": "v1.0 | 382 gates | 128 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits\n\nAdds two 64-bit numbers.\n\nUse this to add two numbers in a creation, such as the sum in a calculator, a total on a score display, or the arithmetic inside a computer built from logic.\n\nFeed it two binary numbers of the same width, lowest bit first. The sum comes out on the result outputs, and the carry output switches on when the sum does not fit. There is no carry input.\n\nInputs (yellow gates, first row, lowest bit first): a = x 0-63, b = x 64-127.\nOutputs (green gates): result = x 0-63, carry = x 64.\n\nProfile: small, the build with the fewest gates for this size.\nHow it works: One small cell per bit; the carry walks from bit to bit.\nChecked on about a million inputs in a simulator. Gates include the input gates; ticks count the input gate too.\n\nOther sizes, the generator and the full explanation:\nhttps://github.com/byggmesterPRO/pareto-circuits/tree/main/circuits/adder",
   "localId": "941164e4-fb72-4c99-84bd-4eb3cc405e1e",
   "name": "Pareto Adder 64bit Small",
   "type": "Blueprint",
