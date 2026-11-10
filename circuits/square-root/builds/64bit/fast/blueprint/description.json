@@ -1,0 +1,7 @@
+{
+  "description": "v1.0 | 8201 gates | 190 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits\n\nThe square root of a 64-bit number, rounded down.\n\nUse this circuit in any creation that needs a square root of a whole number, for example in a calculator or in the arithmetic part of a computer.\n\nIt takes one binary number and returns its square root rounded down to a whole number, read least significant digit first. Numbers that are not perfect squares give the root rounded down.\n\nInputs (yellow gates, first row, lowest bit first): the number = x 0-63.\nOutputs (green gates): root = x 0-31.\n\nProfile: fast, the build with the fewest ticks for this size.\nHow it works: Every bit sees its carry in one step, so the ticks do not grow with the size.\nChecked on about a million inputs in a simulator. Gates include the input gates; ticks count the input gate too.\n\nOther sizes, the generator and the full explanation:\nhttps://github.com/byggmesterPRO/pareto-circuits/tree/main/circuits/square-root",
+  "localId": "6ddcf317-85dc-483a-a920-ffa7c548ec91",
+  "name": "Pareto Square Root 64bit Fast",
+  "type": "Blueprint",
+  "version": 0
+}
