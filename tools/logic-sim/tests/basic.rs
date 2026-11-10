@@ -245,3 +245,123 @@ fn blueprint_round_trip() {
     assert_eq!(check(&c, &Expect::Circuit(&net.circuit()), 1, &[]).unwrap().wrong, 0);
     assert!(logic_sim::validate::validate(&c).warnings.is_empty());
 }
+
+/// A timer set to d is d + 1 gates in a row: 0 is one gate, 1 is two, and so on. Not only for one change of
+/// the input, but for an input that changes every tick: the timer passes on every value, in order.
+#[test]
+fn a_timer_set_to_d_is_d_plus_one_gates() {
+    use logic_sim::circuit::Kind;
+    for d in [0u32, 1, 2, 3, 7, 39, 40, 41, 100] {
+        // input 0 feeds a row of d + 1 one-input OR gates, and a timer set to d
+        let row: Vec<Value> = (0..=d).map(|g| json!([1, [g]])).collect();
+        let (last, timer) = (d + 1, d + 2);
+        let c = Circuit::from_netlist(&json!({"inputs": 1, "gates": row, "timers": [[0, d]], "outputs": [last, timer]})).unwrap();
+        assert_eq!(c.kind[timer as usize], Kind::Timer(d));
+        assert_eq!(c.ticks(), Some(d + 2));
+        assert!(c.balance().unwrap().balanced);
+        let mut sim = Sim::new(&c, 64);
+        let mut s = 0x1234_5678_9ABC_DEF1u64 + d as u64;
+        for tick in 0..600 {
+            s ^= s << 13;
+            s ^= s >> 7;
+            s ^= s << 17;
+            sim.force(0, &[s]);
+            sim.tick();
+            assert_eq!(sim.get(last), sim.get(timer), "timer of {d} against {} gates, tick {tick}", d + 1);
+        }
+        // and it is the delay that was meant: the input gate is tick 1, the timer shows it d + 1 ticks later
+        let mut sim = Sim::new(&c, 1);
+        sim.force_all(0, true);
+        let first_on = (1..).find(|_| { sim.tick(); on(&sim, timer) }).unwrap();
+        assert_eq!(first_on, d + 2);
+    }
+}
+
+#[test]
+fn a_timer_survives_the_blueprint() {
+    use logic_sim::build::Netlist;
+    use logic_sim::circuit::Kind;
+    // settings on both sides of a second (40 ticks), and the longest there is
+    let net = Netlist::from_json(&json!({"inputs": 1, "gates": [], "timers": [[0, 0], [0, 39], [0, 40], [0, 41], [0, 2399]], "outputs": [1, 2, 3, 4, 5]})).unwrap();
+    let (bp, pins) = net.blueprint();
+    let c = Circuit::from_blueprint(&bp, Some(&pins)).unwrap();
+    let got: Vec<Kind> = c.outputs.iter().map(|o| c.kind[o.unwrap() as usize]).collect();
+    assert_eq!(got, [0, 39, 40, 41, 2399].map(Kind::Timer));
+    assert!(logic_sim::validate::validate(&c).problems.is_empty());
+    assert!(Circuit::from_netlist(&json!({"inputs": 1, "gates": [], "timers": [[0, 2400]], "outputs": [1]})).is_err());
+}
+
+/// A 3 bit ripple adder: bit 0 of the sum is ready after 2 ticks, the carry out after 6.
+fn ripple3() -> logic_sim::build::Netlist {
+    use logic_sim::build::{Builder, S};
+    let mut b = Builder::new(6);
+    let (mut carry, mut outs) = (S::Zero, vec![]);
+    for i in 0..3 {
+        let ins = [b.input(i), b.input(3 + i), carry];
+        let sum = b.xor(&ins);
+        let (all, any) = (b.and(&ins), b.or(&ins));
+        carry = if i == 0 { b.and(&ins[..2]) } else { b.xor(&[sum, all, any]) };
+        outs.push(sum);
+    }
+    outs.push(carry);
+    b.finish(&outs).unwrap()
+}
+
+#[test]
+fn balancing_makes_every_path_the_same() {
+    use logic_sim::balance::balance;
+    use logic_sim::stream::stream;
+    let net = ripple3();
+    let c = net.circuit();
+    let before = c.balance().unwrap();
+    assert!(!before.balanced && before.shortest == 2 && before.longest == c.ticks().unwrap());
+    // as it is, it cannot keep up with inputs that change every tick
+    assert!(stream(&c, 200, 1).unwrap().wrong > 0);
+    for extra in [0, 1, 5] {
+        let ticks = c.ticks().unwrap() + extra;
+        let b = balance(&net, if extra == 0 { None } else { Some(ticks) }).unwrap();
+        let bc = b.circuit();
+        assert_eq!(bc.balance().unwrap(), logic_sim::circuit::Balance { balanced: true, shortest: ticks, longest: ticks });
+        // only timers were added, and the outputs settle on the same values
+        assert_eq!((bc.gates(), b.without_timers().gates), (c.gates(), net.gates.clone()));
+        assert!(bc.timers() > 0);
+        let same = check(&bc, &Expect::Circuit(&c), 2, &[]).unwrap();
+        assert!(same.exhaustive && same.wrong == 0);
+        let res = stream(&bc, 200, 1).unwrap();
+        assert_eq!((res.wrong, res.ticks, res.tested), (0, ticks, 200 * 256));
+        assert!(logic_sim::validate::validate(&bc).problems.is_empty());
+        // and it survives being written as a blueprint
+        let (bp, pins) = b.blueprint();
+        let from_bp = Circuit::from_blueprint(&bp, Some(&pins)).unwrap();
+        assert!(from_bp.balance().unwrap().balanced && stream(&from_bp, 200, 2).unwrap().wrong == 0);
+    }
+    assert!(balance(&net, Some(c.ticks().unwrap() - 1)).is_err());
+    assert!(balance(&balance(&net, None).unwrap(), None).is_err());
+}
+
+#[test]
+fn a_delay_longer_than_a_timer_is_a_row_of_timers() {
+    use logic_sim::balance::balance;
+    // out 0 = in 0 and in 1 (2 ticks), balanced at 5000: the gate can sit anywhere, the delay is 4998 ticks
+    let net = logic_sim::build::Netlist::from_json(&json!({"inputs": 2, "gates": [[0, [0, 1]]], "outputs": [2]})).unwrap();
+    let b = balance(&net, Some(5000)).unwrap();
+    let c = b.circuit();
+    assert_eq!(c.balance().unwrap(), logic_sim::circuit::Balance { balanced: true, shortest: 5000, longest: 5000 });
+    // 4998 ticks is three timers (2400 each at most) behind the gate, or three behind each input
+    assert_eq!(c.timers(), 3);
+    assert_eq!(logic_sim::stream::stream(&c, 50, 1).unwrap().wrong, 0);
+}
+
+#[test]
+fn one_long_path_is_enough_to_be_unbalanced() {
+    // out 0 = in 0 xor (in 0 and in 1): in 0 arrives by 2 ticks and by 3
+    let c = Circuit::from_netlist(&json!({"inputs": 2, "gates": [[0, [0, 1]], [2, [0, 2]]], "outputs": [3]})).unwrap();
+    assert_eq!(c.balance().unwrap(), logic_sim::circuit::Balance { balanced: false, shortest: 2, longest: 3 });
+    // the same with the short wire delayed one tick by a timer set to 0
+    let c = Circuit::from_netlist(&json!({"inputs": 2, "gates": [[0, [0, 1]], [2, [4, 2]]], "timers": [[0, 0]], "outputs": [3]})).unwrap();
+    assert_eq!(c.balance().unwrap(), logic_sim::circuit::Balance { balanced: true, shortest: 3, longest: 3 });
+    assert_eq!((c.gates(), c.timers(), c.ticks()), (4, 1, Some(3)));
+    // a latch has memory: balanced does not apply
+    let latch = Circuit::from_netlist(&json!({"inputs": 2, "gates": [[4, [1, 3]], [4, [0, 2]]], "outputs": [2, 3]})).unwrap();
+    assert_eq!(latch.balance(), None);
+}

@@ -15,8 +15,10 @@ A <circuit> is a build slot folder, a blueprint.json or a netlist.json.
   logic-sim equal <circuit> <reference circuit>   do two circuits give the same outputs for every input
   logic-sim check <circuit> --table <file.json>   check against a list with one output value per input
   logic-sim check <circuit> --cases <file.json>   check chosen inputs: [[input, output], ...]
-  logic-sim count <circuit>                       gates and ticks
+  logic-sim count <circuit>                       gates, timers, ticks, and is it balanced
   logic-sim delay <circuit> [jumps]               worst output delay seen over random input changes
+  logic-sim stream <circuit> [steps]              new inputs every tick: are the outputs right, ticks later
+  logic-sim balance <circuit> <out.json> [ticks]  pad with timers until every path is the same; writes a netlist
   logic-sim validate <circuit>                    can it be built in the game
   logic-sim run <circuit> <script>                run a test script (set, tick, check) on the tick simulator
   logic-sim serve                                 stay running: one JSON request per line in, one reply out
@@ -24,8 +26,11 @@ A <circuit> is a build slot folder, a blueprint.json or a netlist.json.
   --pins <file.json>     inputs and outputs of a bare blueprint.json:
                          {\"inputs\": [controller id, ...], \"outputs\": [controller id or null, ...]}
 
-verify, equal, check and delay are for circuits without memory. Circuits with memory, timers or loops are
-tested with run. See README.md for the request format of serve.";
+Balanced means every path from an input to an output is the same number of ticks, so the inputs can change
+every tick. A timer set to d counts as d + 1 gates in a row.
+
+verify, equal, check, delay, stream and balance are for circuits without memory. Circuits with memory or
+loops are tested with run. See README.md for the request format of serve.";
 
 fn read(path: &str) -> Result<Value, String> {
     let text = fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
@@ -59,6 +64,17 @@ fn request(mut args: Vec<String>) -> Result<Value, String> {
         "delay" => {
             if let Some(j) = args.get(2).and_then(|j| j.parse::<u64>().ok()) {
                 req.insert("jumps".into(), json!(j));
+            }
+        }
+        "stream" => {
+            if let Some(n) = args.get(2).and_then(|n| n.parse::<u64>().ok()) {
+                req.insert("steps".into(), json!(n));
+            }
+        }
+        "balance" => {
+            req.insert("out".into(), json!(args.get(2).ok_or("balance needs a file to write the netlist to")?));
+            if let Some(t) = args.get(3) {
+                req.insert("ticks".into(), json!(t.parse::<u64>().map_err(|_| format!("\"{t}\" is not a number of ticks"))?));
             }
         }
         "run" => {

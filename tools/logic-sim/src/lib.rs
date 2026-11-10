@@ -9,10 +9,13 @@
 //! - `parts`: pieces that several generators share (carry networks, full adders, decoders)
 //! - `validate`: can it be built in the game
 //! - `delay`: worst output delay seen over random input changes
+//! - `balance`: pad a circuit with timers until every path is the same number of ticks
+//! - `stream`: does a circuit keep up with inputs that change every tick
 //! - `script`: small test scripts (set, tick, check)
 //! - `api`: every command as a JSON request and reply, for the command line and for `serve`
 
 pub mod api;
+pub mod balance;
 pub mod build;
 pub mod check;
 pub mod circuit;
@@ -22,4 +25,5 @@ pub mod memory;
 pub mod parts;
 pub mod script;
 pub mod sim;
+pub mod stream;
 pub mod validate;

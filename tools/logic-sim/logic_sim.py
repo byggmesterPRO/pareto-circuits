@@ -10,6 +10,8 @@
     sim.check(netlist, reference=other_netlist)                     # two circuits must agree
     sim.count(netlist), sim.delay(netlist), sim.validate("blueprint.json")
     sim.run("blueprint.json", "set #3 1\\ntick 2\\ncheck #7 1")       # a test script, for circuits with memory
+    sim.stream(netlist)                                             # new inputs every tick: does it keep up
+    sim.balance(netlist, ticks=None, out=None)                      # add timers until every path is the same
 
 Every call returns the reply as a dict. reply["problems"] is empty when all is well.
 A circuit is a path (build slot, blueprint.json, netlist.json) or the netlist or blueprint as a dict.
@@ -64,6 +66,13 @@ class LogicSim:
 
     def delay(self, circuit, jumps=200_000, pins=None):
         return self.request("delay", circuit, jumps=jumps, pins=pins)
+
+    def stream(self, circuit, steps=2000, pins=None):
+        return self.request("stream", circuit, steps=steps, pins=pins)
+
+    def balance(self, circuit, ticks=None, out=None, pins=None):
+        """The balanced netlist is reply["netlist"], or goes to the file `out`."""
+        return self.request("balance", circuit, ticks=ticks, out=out, pins=pins)
 
     def validate(self, circuit, pins=None):
         return self.request("validate", circuit, pins=pins)

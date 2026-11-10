@@ -26,8 +26,10 @@ JSON and exits 1 if there is a problem. `logic-sim help` lists them.
 | `equal <circuit> <reference>` | Do two circuits give the same outputs for every input |
 | `check <circuit> --table <file>` | Checks against a list with one output value per input |
 | `check <circuit> --cases <file>` | Checks chosen inputs: `[[input, output], ...]` |
-| `count <circuit>` | Gates and ticks |
+| `count <circuit>` | Gates, timers and ticks, and whether it is balanced |
 | `delay <circuit> [jumps]` | Worst output delay seen over random input changes |
+| `stream <circuit> [steps]` | New inputs every tick: are the outputs right, `ticks` ticks later |
+| `balance <circuit> <out.json> [ticks]` | Pads with timers until every path is the same; writes a netlist |
 | `validate <circuit>` | Can it be built in the game |
 | `run <circuit> <script>` | Runs a test script on the tick simulator |
 | `serve` | Stays running: one JSON request per line in, one reply per line out |
@@ -42,7 +44,7 @@ them in its `meta.json`, and a netlist has them built in.
   in Rust. Hand over the right answers as a table or as cases, or compare against a circuit you trust, such as
   a generator's output. Up to 32 input bits every input is tried; above that, edge cases plus a million random
   inputs. With a table or cases, exactly what you give is tried.
-- **With memory, timers or loops** (RAM, counters, clocks): `run` with a test script. One step per line:
+- **With memory or loops** (RAM, counters, clocks): `run` with a test script. One step per line:
   `set in0 1`, `release in0`, `tick 3`, `settle`, `check out2 0`. A name is `in<k>` or `out<k>` for a pin, or
   `#<controller id>` for any part. `//` starts a comment.
 
@@ -52,6 +54,29 @@ too big. There so far: `adder`, `barrel-shifter`, `comparator`, `decoder`, `demu
 runs random operations against a model and reports the measured delays.
 
 Inputs and outputs can be up to 128 bits wide each, which is what a 64bit adder needs.
+
+## Balanced circuits
+
+Balanced is the game's word for a circuit where every path from an input to an output is the same number of
+ticks. Its outputs always belong to the inputs of one tick, so the inputs can change every tick and a result
+comes out every tick, `ticks` ticks later. It is not the `balanced` build profile, which is about gates x ticks.
+
+- `count` says whether a circuit is balanced, from the wiring: `balanced`, and `shortest_path` next to `ticks`
+  (the longest). They are equal when it is.
+- `stream` is the test of it. It runs the circuit on the tick simulator with new random inputs on every tick,
+  256 streams side by side, and checks every output on every tick against the inputs of `ticks` ticks before.
+- `balance` makes a circuit balanced without touching its gates: it adds timers on the wires that are too
+  short. A timer set to `d` is `d + 1` gates in a row (`cargo test` checks that on inputs that change every
+  tick), so any delay up to 2400 ticks is one part. Readers of a signal that need the same delay share the
+  timer. Give `ticks` to balance at more than the longest path.
+
+How many timers it takes depends on where the delays go: a gate off the longest path can sit early with the
+delay behind it, or late with the delay in front. `balance` searches for the placing with the fewest timers
+(`src/balance.rs` says how). The count it gets is a best-known, not a proven minimum.
+
+A netlist holds timers as `"timers": [[signal it reads, setting], ...]`. They are numbered after the gates:
+signal `inputs + gates + t` is timer `t`. In a blueprint a timer takes one cell, like a gate, and stands two
+blocks tall in it.
 
 ## From Python, or any other language
 
@@ -63,6 +88,8 @@ sim.verify("circuits/double-dabble/builds/12bit/fast")
 sim.check(netlist, table=[f(x) for x in range(1 << bits)])
 sim.check(netlist, reference=other_netlist)
 sim.run(blueprint, "set #3 1\ntick 2\ncheck #7 1")
+sim.stream(netlist)                 # does it keep up with inputs that change every tick
+sim.balance(netlist)["netlist"]     # the same circuit with timers added until it does
 ```
 
 The client keeps one `logic-sim serve` running, so a call costs no start-up, and circuits can be sent as
@@ -95,7 +122,8 @@ works for circuits with memory and timers. Checking against a table, cases or an
 - 30 random circuits with feedback loops, self-wired gates and timers, 200 ticks each with random inputs:
   the same state for every part on every tick
 
-`cargo test` has 15 tests here: a half adder, a NOR latch, a timer, independent lanes, tables, cases, circuit
+`cargo test` has 20 tests here: a half adder, a NOR latch, timers (one, and against rows of gates), balancing,
+independent lanes, tables, cases, circuit
 against circuit, parts in any order, more than 64 output bits, 128 input bits, the double dabble reference,
 doubling a gate that drives too many, and writing a blueprint and reading it back.
 
@@ -130,7 +158,13 @@ and made no difference.
   reports 3 separate pieces. For now that is a warning. If the game needs them to touch, the layout in
   `bygg-logic-sim/netlist.py` has to change and the builds get a new version.
 - Self-wired and cross-wired parts are reported as warnings, since some builds want them (memory cells).
-- A timer is counted as one block when checking overlaps and touching; in the game it takes two.
+- A timer is counted as one block when checking overlaps and touching; in the game it takes two. The
+  blueprint writer stands a timer on end, so that its second block is above the layer the gates are in. The
+  timer's size (1 x 2 x 1) is from the game's files; that this way of turning it puts the long side up is
+  worked out from the axes, and has not been looked at in the game.
+- **Balanced circuits lean on the tick model more than anything else here.** One tick off in how the game
+  counts a timer and a balanced build is not balanced. A balanced adder built in the game, fed from a counter,
+  would settle it.
 - Test scripts run one copy of the circuit. Checking a memory circuit on many inputs at once needs the
   library (`sim.rs`), not the command line.
 - The optimizers in `optimizers/fable` do not use it yet.

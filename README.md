@@ -73,6 +73,11 @@ circuits/double-dabble/builds/16bit/fast/
 
 If the same build wins two profiles, save it in both slots.
 
+The `balanced` profile is not what the game's players call a balanced circuit. That is a circuit where every
+path from an input to an output is the same number of ticks, so that the inputs can change every tick.
+`pareto pick --balanced` makes those, and `pareto frontier` lists every design worth having, not just three
+(see `tools/pareto/README.md`).
+
 ### How we count
 
 - **gates**: every logic gate in the blueprint, input and output gates included.
