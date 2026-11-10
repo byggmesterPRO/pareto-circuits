@@ -1,0 +1,43 @@
+{
+  "authors": [
+    "byggmesterPRO"
+  ],
+  "date": "2026-11-10",
+  "family": "double-dabble",
+  "gates": 55,
+  "notes": "Generator design: chain-7.",
+  "optimal": "best-known",
+  "pins": {
+    "inputs": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "outputs": [
+      0,
+      46,
+      47,
+      43,
+      45,
+      53,
+      54,
+      50,
+      52,
+      38,
+      null,
+      null
+    ]
+  },
+  "profile": "small",
+  "size": "8bit",
+  "source": "generator",
+  "ticks": 30,
+  "verified": "exhaustive",
+  "version": "1.0",
+  "workshop": ""
+}
