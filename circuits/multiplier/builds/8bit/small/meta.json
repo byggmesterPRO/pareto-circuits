@@ -1,0 +1,55 @@
+{
+  "authors": [
+    "byggmesterPRO"
+  ],
+  "date": "2026-11-10",
+  "family": "multiplier",
+  "gates": 288,
+  "notes": "Generator design: ripple.",
+  "optimal": "best-known",
+  "pins": {
+    "inputs": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "outputs": [
+      16,
+      80,
+      86,
+      96,
+      110,
+      128,
+      150,
+      176,
+      202,
+      224,
+      244,
+      260,
+      272,
+      280,
+      284,
+      287
+    ]
+  },
+  "profile": "small",
+  "size": "8bit",
+  "source": "generator",
+  "ticks": 28,
+  "verified": "exhaustive",
+  "version": "1.0",
+  "workshop": ""
+}
