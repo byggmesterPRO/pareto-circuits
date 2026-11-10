@@ -202,6 +202,7 @@ def description(meta):
         lines.append(timing.group(0))
     lines += [
         f"{checked(meta)} Gates include the input gates; ticks count the input gate too.",
+        f"By: {', '.join(meta.get('authors', []))}",
         "",
         "Other sizes, the generator and the full explanation:",
         f"https://{REPO}/tree/main/circuits/{meta['family']}",
