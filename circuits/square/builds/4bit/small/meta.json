@@ -1,0 +1,35 @@
+{
+  "authors": [
+    "byggmesterPRO"
+  ],
+  "date": "2026-11-10",
+  "family": "square",
+  "gates": 18,
+  "notes": "Generator design: normal-form.",
+  "optimal": "best-known",
+  "pins": {
+    "inputs": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "outputs": [
+      0,
+      null,
+      5,
+      7,
+      11,
+      14,
+      17,
+      15
+    ]
+  },
+  "profile": "small",
+  "size": "4bit",
+  "source": "generator",
+  "ticks": 3,
+  "verified": "exhaustive",
+  "version": "1.0",
+  "workshop": ""
+}
