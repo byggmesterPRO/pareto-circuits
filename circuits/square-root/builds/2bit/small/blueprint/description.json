@@ -1,0 +1,7 @@
+{
+  "description": "v1.0 | 4 gates | 3 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits\n\nThe square root of a 2-bit number, rounded down.\n\nUse this circuit in any creation that needs a square root of a whole number, for example in a calculator or in the arithmetic part of a computer.\n\nIt takes one binary number and returns its square root rounded down to a whole number, read least significant digit first. Numbers that are not perfect squares give the root rounded down.\n\nInputs (yellow gates, first row, lowest bit first): the number = x 0-1.\nOutputs (green gates): root = x 0.\n\nProfile: small, the build with the fewest gates for this size.\nHow it works: Every output is one XOR gate over AND gates of plain inputs: 3 ticks.\nChecked on every possible input in a simulator. Gates include the input gates; ticks count the input gate too.\n\nOther sizes, the generator and the full explanation:\nhttps://github.com/byggmesterPRO/pareto-circuits/tree/main/circuits/square-root",
+  "localId": "1c6f66cd-16bd-40fc-85ba-585dcafa2cf6",
+  "name": "Pareto Square Root 2bit Small",
+  "type": "Blueprint",
+  "version": 0
+}
