@@ -26,11 +26,11 @@ fn half_adder_every_input() {
     let net = json!({"inputs": 2, "gates": [[2, [0, 1]], [0, [0, 1]]], "outputs": [2, 3]});
     let c = Circuit::from_netlist(&net).unwrap();
     assert_eq!((c.gates(), c.ticks()), (4, Some(2)));
-    let res = check(&c, &Expect::Function(&|x| ((x & 1) ^ (x >> 1)) as u128 | (((x & 1) & (x >> 1)) as u128) << 1), 2).unwrap();
+    let res = check(&c, &Expect::Function(&|x| ((x & 1) ^ (x >> 1)) as u128 | (((x & 1) & (x >> 1)) as u128) << 1), 2, &[]).unwrap();
     assert!(res.exhaustive && res.tested == 4 && res.wrong == 0);
     // a wrong reference: inputs 2 and 3 now disagree
-    let res = check(&c, &Expect::Function(&|x| (x & 1) as u128), 2).unwrap();
-    assert_eq!((res.wrong, res.example), (2, Some(2)));
+    let res = check(&c, &Expect::Function(&|x| (x & 1) as u128), 2, &[]).unwrap();
+    assert_eq!((res.wrong, res.example), (2, Some(2u128)));
 }
 
 #[test]
@@ -84,7 +84,7 @@ fn double_dabble_function() {
     assert_eq!((f.f)(4095), 0x4095);
     let f = family("double-dabble", "64bit").unwrap();
     assert_eq!(f.out_bits, 80);
-    assert_eq!((f.f)(u64::MAX), 0x18446744073709551615);
+    assert_eq!((f.f)(u64::MAX as u128), 0x18446744073709551615);
 }
 
 #[test]
@@ -112,14 +112,14 @@ fn table_cases_and_reference() {
     let a = Circuit::from_netlist(&json!({"inputs": 3, "gates": [[0, [0, 1]], [0, [0, 2]], [0, [1, 2]], [1, [3, 4, 5]]], "outputs": [6]})).unwrap();
     let b = Circuit::from_netlist(&json!({"inputs": 3, "gates": [[1, [0, 1]], [0, [0, 1]], [0, [2, 3]], [1, [4, 5]]], "outputs": [6]})).unwrap();
     let table: Vec<u128> = (0..8u32).map(|x| (x.count_ones() >= 2) as u128).collect();
-    assert_eq!(check(&a, &Expect::Table(&table), 1).unwrap().wrong, 0);
-    assert_eq!(check(&a, &Expect::Circuit(&b), 4).unwrap().wrong, 0);
-    assert_eq!(check(&a, &Expect::Cases(&[(3, 1), (4, 0), (7, 1), (1, 1)]), 1).unwrap().wrong, 1);
+    assert_eq!(check(&a, &Expect::Table(&table), 1, &[]).unwrap().wrong, 0);
+    assert_eq!(check(&a, &Expect::Circuit(&b), 4, &[]).unwrap().wrong, 0);
+    assert_eq!(check(&a, &Expect::Cases(&[(3, 1), (4, 0), (7, 1), (1, 1)]), 1, &[]).unwrap().wrong, 1);
     // an xor is not a majority: they agree only on 0 and 7
     let x = Circuit::from_netlist(&json!({"inputs": 3, "gates": [[2, [0, 1, 2]]], "outputs": [3]})).unwrap();
-    let res = check(&a, &Expect::Circuit(&x), 2).unwrap();
-    assert_eq!((res.wrong, res.example, res.tested), (6, Some(1), 8));
-    assert!(check(&a, &Expect::Table(&table[..4]), 1).is_err());
+    let res = check(&a, &Expect::Circuit(&x), 2, &[]).unwrap();
+    assert_eq!((res.wrong, res.example, res.tested), (6, Some(1u128), 8));
+    assert!(check(&a, &Expect::Table(&table[..4]), 1, &[]).is_err());
 }
 
 #[test]
@@ -127,7 +127,7 @@ fn blueprint_parts_in_any_order() {
     // the output gate comes first in the file, its inputs after it
     let bp = blueprint(vec![gate(9, 0, &[], 0), gate(1, 1, &[9], 1), gate(2, 1, &[9], 2)]);
     let c = Circuit::from_blueprint(&bp, Some(&json!({"inputs": [1, 2], "outputs": [9]}))).unwrap();
-    assert_eq!(check(&c, &Expect::Function(&|x| (x == 3) as u128), 1).unwrap().wrong, 0);
+    assert_eq!(check(&c, &Expect::Function(&|x| (x == 3) as u128), 1, &[]).unwrap().wrong, 0);
     assert_eq!((c.gates(), c.ticks()), (3, Some(2)));
 }
 
@@ -136,9 +136,9 @@ fn more_than_64_output_bits() {
     // a 64-bit "pass through twice": 128 outputs wired straight to the inputs
     let outs: Vec<u64> = (0..64).chain(0..64).collect();
     let c = Circuit::from_netlist(&json!({"inputs": 64, "gates": [], "outputs": outs})).unwrap();
-    let res = check(&c, &Expect::Function(&|x| x as u128 | (x as u128) << 64), 4).unwrap();
+    let res = check(&c, &Expect::Function(&|x| x & u64::MAX as u128 | (x & u64::MAX as u128) << 64), 4, &[]).unwrap();
     assert!(!res.exhaustive && res.wrong == 0 && res.tested > 900_000);
-    let res = check(&c, &Expect::Function(&|x| x as u128 | ((x ^ 1) as u128) << 64), 4).unwrap();
+    let res = check(&c, &Expect::Function(&|x| x & u64::MAX as u128 | ((x ^ 1) & u64::MAX as u128) << 64), 4, &[]).unwrap();
     assert_eq!(res.wrong, res.tested);
 }
 
@@ -153,7 +153,7 @@ fn counting_in_decimal_matches_dividing() {
             let (mut lo, mut hi) = ([0u64; 64], [0u64; 64]);
             (fam.run)(first, &mut lo[..n], &mut hi[..n]);
             for l in 0..n {
-                assert_eq!(lo[l] as u128 | (hi[l] as u128) << 64, (fam.f)(first + l as u64), "{size} {first} {l}");
+                assert_eq!(lo[l] as u128 | (hi[l] as u128) << 64, (fam.f)(first as u128 + l as u128), "{size} {first} {l}");
             }
         }
     }
@@ -172,11 +172,76 @@ fn a_broken_gate_is_caught_on_the_fast_path() {
         [0, [3, 6]]                                 // 11 = ones bit 3
     ], "outputs": [0, 7, 10, 11, 5, null, null, null]});
     let c = Circuit::from_netlist(&net).unwrap();
-    let good = check(&c, &Expect::Run(&*fam.f, &*fam.run), 2).unwrap();
+    let good = check(&c, &Expect::Run(&*fam.f, &*fam.run), 2, &[]).unwrap();
     assert_eq!((good.wrong, good.tested, good.exhaustive), (0, 16, true));
     let mut bad = net.clone();
     bad["gates"][3][0] = json!(5);
     let c = Circuit::from_netlist(&bad).unwrap();
-    let res = check(&c, &Expect::Run(&*fam.f, &*fam.run), 2).unwrap();
-    assert_eq!((res.wrong, res.example), (16, Some(0)));
+    let res = check(&c, &Expect::Run(&*fam.f, &*fam.run), 2, &[]).unwrap();
+    assert_eq!((res.wrong, res.example), (16, Some(0u128)));
+}
+
+#[test]
+fn adder_family_and_128_input_bits() {
+    use logic_sim::build::{Builder, S};
+    // ripple adder from full adders: sum = xor(a, b, c), carry = xor(sum, and(a, b, c), or(a, b, c))
+    for n in [3usize, 64] {
+        let fam = family("adder", &format!("{n}bit")).unwrap();
+        assert_eq!((fam.bits as usize, fam.out_bits as usize), (2 * n, n + 1));
+        let mut b = Builder::new(2 * n);
+        let (mut carry, mut outs) = (S::Zero, vec![]);
+        for i in 0..n {
+            let (x, y) = (b.input(i), b.input(n + i));
+            let sum = b.xor(&[x, y, carry]);
+            let (all, any) = (b.and(&[x, y, carry]), b.or(&[x, y, carry]));
+            carry = b.xor(&[sum, all, any]);
+            outs.push(sum);
+        }
+        outs.push(carry);
+        let net = b.finish(&outs).unwrap();
+        assert_eq!(net.gates.len(), 4 * n - 1);
+        let c = net.circuit();
+        let res = check(&c, &Expect::Run(&*fam.f, &*fam.run), 4, &fam.hard).unwrap();
+        assert_eq!((res.wrong, res.exhaustive), (0, n == 3));
+        // the same adder with the top carry dropped must fail, on the long carry chains at least
+        let mut broken = net.clone();
+        *broken.outputs.last_mut().unwrap() = None;
+        let res = check(&broken.circuit(), &Expect::Run(&*fam.f, &*fam.run), 4, &fam.hard).unwrap();
+        assert!(res.wrong > 0);
+    }
+}
+
+#[test]
+fn a_gate_driving_too_many_is_doubled() {
+    use logic_sim::build::{Builder, S};
+    let mut b = Builder::new(40);
+    let hub = b.and(&[b.input(0), b.input(1)]);
+    // 600 different gates that all read the hub, each with two of the other inputs
+    let mut outs = vec![];
+    for k in 0..600usize {
+        let xs = [hub, b.input(2 + k % 38), b.input(2 + k / 38 % 38)];
+        outs.push(b.gate((k % 3) as u8 + 3, &xs));
+    }
+    let parts: Vec<S> = outs.chunks(200).map(|c| b.xor(c)).collect();
+    let all = b.xor(&parts);
+    let net = b.finish(&[all]).unwrap();
+    let c = net.circuit();
+    let most = c.readers().iter().map(|r| r.len()).max().unwrap();
+    assert!(most <= 255, "{most}");
+    assert!(logic_sim::validate::validate(&c).problems.is_empty());
+    // same function as the straightforward version without the limit
+    let mut plain = net.clone();
+    plain.prune();
+    assert_eq!(check(&c, &Expect::Circuit(&plain.circuit()), 2, &[]).unwrap().wrong, 0);
+}
+
+#[test]
+fn blueprint_round_trip() {
+    use logic_sim::build::Netlist;
+    let net = Netlist::from_json(&json!({"inputs": 2, "gates": [[2, [0, 1]], [0, [0, 1]]], "outputs": [2, 3, null]})).unwrap();
+    let (bp, pins) = net.blueprint();
+    let c = Circuit::from_blueprint(&bp, Some(&pins)).unwrap();
+    assert_eq!((c.gates(), c.ticks()), (4, Some(2)));
+    assert_eq!(check(&c, &Expect::Circuit(&net.circuit()), 1, &[]).unwrap().wrong, 0);
+    assert!(logic_sim::validate::validate(&c).warnings.is_empty());
 }

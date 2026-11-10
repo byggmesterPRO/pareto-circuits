@@ -45,6 +45,11 @@ fn number(v: &Value) -> Result<u128, String> {
     .map_err(|_| format!("\"{s}\" is not a number"))
 }
 
+/// Numbers above 2^53 do not survive JSON, so they go out as strings.
+fn big(v: u128) -> Value {
+    if v < 1 << 53 { json!(v as u64) } else { json!(v.to_string()) }
+}
+
 fn circuit(v: &Value, pins: Option<&Value>) -> Result<(Circuit, Option<Value>), String> {
     match v.as_str() {
         Some(path) => load(Path::new(path), pins),
@@ -66,7 +71,7 @@ fn report(c: &Circuit, res: Checked) -> Value {
         "verified": if res.exhaustive { "exhaustive" } else { "sampled" },
         "tested": res.tested,
         "wrong": res.wrong,
-        "example": res.example,
+        "example": res.example.map(big),
         "problems": problems,
         "warnings": v.warnings,
     })
@@ -84,7 +89,7 @@ fn verify(c: &Circuit, fam: &str, size: &str) -> Result<Value, String> {
     if !problems.is_empty() {
         return Ok(json!({ "problems": problems, "warnings": [] }));
     }
-    Ok(report(c, check(c, &Expect::Run(&*f.f, &*f.run), threads())?))
+    Ok(report(c, check(c, &Expect::Run(&*f.f, &*f.run), threads(), &f.hard)?))
 }
 
 fn run(req: &Value) -> Result<Value, String> {
@@ -125,20 +130,20 @@ fn run(req: &Value) -> Result<Value, String> {
             need_pins()?;
             if let Some(t) = req.get("table") {
                 let table = t.as_array().ok_or("\"table\" must be a list")?.iter().map(number).collect::<Result<Vec<_>, _>>()?;
-                Ok(report(&c, check(&c, &Expect::Table(&table), threads())?))
+                Ok(report(&c, check(&c, &Expect::Table(&table), threads(), &[])?))
             } else if let Some(cs) = req.get("cases") {
                 let mut cases = vec![];
                 for case in cs.as_array().ok_or("\"cases\" must be a list of [input, output]")? {
-                    cases.push((number(&case[0])? as u64, number(&case[1])?));
+                    cases.push((number(&case[0])?, number(&case[1])?));
                 }
-                Ok(report(&c, check(&c, &Expect::Cases(&cases), threads())?))
+                Ok(report(&c, check(&c, &Expect::Cases(&cases), threads(), &[])?))
             } else if let Some(r) = req.get("reference") {
                 let ref_pins = match req.get("reference_pins") {
                     Some(p) => Some(read_pins(p)?),
                     None => None,
                 };
                 let (rc, _) = circuit(r, ref_pins.as_ref())?;
-                Ok(report(&c, check(&c, &Expect::Circuit(&rc), threads())?))
+                Ok(report(&c, check(&c, &Expect::Circuit(&rc), threads(), &[])?))
             } else {
                 Err("check needs \"table\", \"cases\" or \"reference\"".into())
             }

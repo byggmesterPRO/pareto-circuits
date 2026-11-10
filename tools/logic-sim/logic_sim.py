@@ -15,7 +15,7 @@ Every call returns the reply as a dict. reply["problems"] is empty when all is w
 A circuit is a path (build slot, blueprint.json, netlist.json) or the netlist or blueprint as a dict.
 A bare blueprint needs pins={"inputs": [controller id, ...], "outputs": [controller id or None, ...]}.
 
-Build the program first: cargo build --release, in tools/logic-sim. Other languages can talk to
+Build the program first: cargo build --release, in the repo. Other languages can talk to
 `logic-sim serve` the same way: one JSON request per line in, one JSON reply per line out.
 """
 import json
@@ -34,9 +34,9 @@ def _big(v):
 
 class LogicSim:
     def __init__(self, exe=None):
-        exe = exe or os.environ.get("LOGIC_SIM") or HERE / "target" / "release" / ("logic-sim.exe" if sys.platform == "win32" else "logic-sim")
+        exe = exe or os.environ.get("LOGIC_SIM") or HERE.parents[1] / "target" / "release" / ("logic-sim.exe" if sys.platform == "win32" else "logic-sim")
         if not Path(exe).exists():
-            raise FileNotFoundError(f"{exe} not found. Build it with: cargo build --release (in {HERE})")
+            raise FileNotFoundError(f"{exe} not found. Build it with: cargo build --release (in {HERE.parents[1]})")
         self.proc = subprocess.Popen([str(exe), "serve"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
 
     def request(self, cmd, circuit, **fields):

@@ -43,6 +43,9 @@ For now each system's simulator and verifier sit in their own folder, `tools/byg
 `tools/niknal-logic-sim/`. The best parts of both become `tools/logic-sim/` in Rust, which is then the shared
 verifier.
 
+The Rust tools build together: `cargo build --release` in the repo makes `logic-sim` (simulator and verifier)
+and `pareto` (runs the generators and writes build slots) in `target/release/`.
+
 ## Builds
 
 A build is one finished, verified blueprint. Each one lives in its own slot:

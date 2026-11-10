@@ -5,22 +5,25 @@
 
 use crate::circuit::{Circuit, Kind};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Mutex;
 use std::thread;
 
 /// Up to this many input bits every input is tried.
 pub const EXHAUSTIVE_BITS: u32 = 32;
 pub const SAMPLES: usize = 1_000_000;
+/// Inputs and outputs are numbers of up to this many bits.
+pub const MAX_BITS: u32 = 128;
 
 pub enum Expect<'a> {
     /// The correct output for an input.
-    Function(&'a (dyn Fn(u64) -> u128 + Sync)),
+    Function(&'a (dyn Fn(u128) -> u128 + Sync)),
     /// The same, plus a quicker way to get the outputs of up to 64 inputs in a row: fill(first input, low 64
     /// bits of each output, the bits above those). Used when every input is tried.
-    Run(&'a (dyn Fn(u64) -> u128 + Sync), &'a (dyn Fn(u64, &mut [u64], &mut [u64]) + Sync)),
+    Run(&'a (dyn Fn(u128) -> u128 + Sync), &'a (dyn Fn(u64, &mut [u64], &mut [u64]) + Sync)),
     /// One value per input, for every input.
     Table(&'a [u128]),
     /// Chosen inputs and the output each must give.
-    Cases(&'a [(u64, u128)]),
+    Cases(&'a [(u128, u128)]),
     /// Another circuit with the same pins: the two must agree.
     Circuit(&'a Circuit),
 }
@@ -31,27 +34,32 @@ pub struct Checked {
     pub tested: u64,
     pub exhaustive: bool,
     /// The smallest input that gave a wrong output.
-    pub example: Option<u64>,
+    pub example: Option<u128>,
 }
 
-/// Edge cases plus random inputs, for sizes too big to try everything.
-pub fn sample(bits: u32) -> Vec<u64> {
-    let top = if bits >= 64 { u64::MAX } else { (1u64 << bits) - 1 };
+/// Inputs to try when there are too many to try them all: edge cases, the family's own hard cases, and
+/// random ones.
+pub fn sample(bits: u32, hard: &[u128]) -> Vec<u128> {
+    let top = if bits >= 128 { u128::MAX } else { (1u128 << bits) - 1 };
     let mut xs = vec![0, 1, top, top - 1];
+    xs.extend(hard.iter().map(|&x| x & top));
     for i in 0..bits {
-        xs.extend([1u64 << i, (1u64 << i) - 1, top ^ (1u64 << i)]);
+        xs.extend([1u128 << i, (1u128 << i) - 1, top ^ (1u128 << i)]);
     }
-    let mut p: u64 = 1;
+    let mut p: u128 = 1;
     while let Some(next) = p.checked_mul(10) {
         xs.extend([next - 1, next, next / 2].into_iter().filter(|&v| v <= top));
         p = next;
     }
     let mut s: u64 = 0x9E3779B97F4A7C15;
-    for _ in 0..SAMPLES {
+    let mut word = || {
         s ^= s >> 12;
         s ^= s << 25;
         s ^= s >> 27;
-        xs.push(s.wrapping_mul(0x2545F4914F6CDD1D) & top);
+        s.wrapping_mul(0x2545F4914F6CDD1D)
+    };
+    for _ in 0..SAMPLES {
+        xs.push((word() as u128 | (word() as u128) << 64) & top);
     }
     xs.sort_unstable();
     xs.dedup();
@@ -147,11 +155,12 @@ impl Flat {
 }
 
 /// Check a circuit without memory. Its input pins are the input bits, least significant first.
-pub fn check(c: &Circuit, expect: &Expect, threads: usize) -> Result<Checked, String> {
+/// `hard` is extra inputs to include when the inputs are sampled.
+pub fn check(c: &Circuit, expect: &Expect, threads: usize, hard: &[u128]) -> Result<Checked, String> {
     let flat = Flat::new(c)?;
     let bits = c.inputs.len() as u32;
-    if bits > 64 {
-        return Err(format!("{bits} input bits; this checker handles up to 64"));
+    if bits > MAX_BITS || c.outputs.len() as u32 > MAX_BITS {
+        return Err(format!("{bits} input bits and {} output bits; this checker handles up to {MAX_BITS} of each", c.outputs.len()));
     }
     let reference = match expect {
         Expect::Circuit(r) => {
@@ -163,23 +172,23 @@ pub fn check(c: &Circuit, expect: &Expect, threads: usize) -> Result<Checked, St
         _ => None,
     };
     // which inputs to try
-    let listed: Option<Vec<u64>> = match expect {
+    let listed: Option<Vec<u128>> = match expect {
         Expect::Cases(cases) => Some(cases.iter().map(|c| c.0).collect()),
         Expect::Table(t) => {
             if bits > 40 || t.len() as u64 != 1u64 << bits {
-                return Err(format!("the table has {} values, {bits} input bits need {}", t.len(), 1u128 << bits));
+                return Err(format!("the table has {} values, {bits} input bits need {}", t.len(), 1u128 << bits.min(127)));
             }
             None
         }
-        _ if bits > EXHAUSTIVE_BITS => Some(sample(bits)),
+        _ if bits > EXHAUSTIVE_BITS => Some(sample(bits, hard)),
         _ => None,
     };
     let exhaustive = listed.is_none();
     let tested: u64 = listed.as_ref().map_or_else(|| 1u64 << bits, |l| l.len() as u64);
     // rows per block: small enough that all signals of a block stay in the CPU cache
     let biggest = flat.slots().max(reference.as_ref().map_or(0, |r| r.slots()));
-    let mut block_bits = 16u32;
     let budget = std::env::var("LOGIC_SIM_BLOCK_KB").ok().and_then(|v| v.parse().ok()).unwrap_or(512usize) * 1024;
+    let mut block_bits = 16u32;
     while block_bits > 6 && biggest * (1usize << (block_bits - 6)) * 8 > budget {
         block_bits -= 1;
     }
@@ -189,7 +198,7 @@ pub fn check(c: &Circuit, expect: &Expect, threads: usize) -> Result<Checked, St
     let w = (block_rows as usize).div_ceil(64);
     let next_block = AtomicU64::new(0);
     let wrong = AtomicU64::new(0);
-    let example = AtomicU64::new(u64::MAX);
+    let example: Mutex<Option<u128>> = Mutex::new(None);
     let (listed, reference, flat) = (&listed, &reference, &flat);
     thread::scope(|scope| {
         for _ in 0..threads.max(1).min(blocks.max(1) as usize) {
@@ -206,7 +215,7 @@ pub fn check(c: &Circuit, expect: &Expect, threads: usize) -> Result<Checked, St
                     let rows = (tested - k * block_rows).min(block_rows) as usize;
                     let x_at = |r: usize| match listed {
                         Some(l) => l[(k * block_rows) as usize + r],
-                        None => k * block_rows + r as u64,
+                        None => (k * block_rows + r as u64) as u128,
                     };
                     for i in 0..flat.inputs {
                         let row = &mut vals[i * w..(i + 1) * w];
@@ -243,7 +252,7 @@ pub fn check(c: &Circuit, expect: &Expect, threads: usize) -> Result<Checked, St
                             hi.fill(0);
                             lo.fill(0);
                             match expect {
-                                Expect::Run(_, fill) if exhaustive => fill(x_at(j * 64), &mut lo[..n], &mut hi[..n]),
+                                Expect::Run(_, fill) if exhaustive => fill(x_at(j * 64) as u64, &mut lo[..n], &mut hi[..n]),
                                 _ => {
                                     for l in 0..n {
                                         let x = x_at(j * 64 + l);
@@ -272,7 +281,11 @@ pub fn check(c: &Circuit, expect: &Expect, threads: usize) -> Result<Checked, St
                         }
                         if diff != 0 {
                             bad += diff.count_ones() as u64;
-                            example.fetch_min(x_at(j * 64 + diff.trailing_zeros() as usize), Ordering::Relaxed);
+                            let x = x_at(j * 64 + diff.trailing_zeros() as usize);
+                            let mut e = example.lock().unwrap();
+                            if e.is_none_or(|old| x < old) {
+                                *e = Some(x);
+                            }
                         }
                     }
                     wrong.fetch_add(bad, Ordering::Relaxed);
@@ -280,6 +293,5 @@ pub fn check(c: &Circuit, expect: &Expect, threads: usize) -> Result<Checked, St
             });
         }
     });
-    let wrong = wrong.into_inner();
-    Ok(Checked { wrong, tested, exhaustive, example: if wrong > 0 { Some(example.into_inner()) } else { None } })
+    Ok(Checked { wrong: wrong.into_inner(), tested, exhaustive, example: example.into_inner().unwrap() })
 }

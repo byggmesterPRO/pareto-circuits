@@ -9,12 +9,10 @@ tick model still has to be checked against the game.
 ## Build
 
 ```
-cd tools/logic-sim
 cargo build --release
 ```
 
-Build from this folder: its `.cargo/config.toml` compiles for the CPU of your machine. The program ends up in
-`tools/logic-sim/target/release/`.
+Run it in the repo. It builds every Rust tool here, for the CPU of your machine, into `target/release/`.
 
 ## Commands
 
@@ -49,7 +47,9 @@ them in its `meta.json`, and a netlist has them built in.
   `#<controller id>` for any part. `//` starts a comment.
 
 A family in `src/families.rs` is only needed for `verify` on build slots, and for sizes where a table would be
-too big. Only `double-dabble` is there so far.
+too big. `adder` and `double-dabble` are there so far.
+
+Inputs and outputs can be up to 128 bits wide each, which is what a 64bit adder needs.
 
 ## From Python, or any other language
 
@@ -93,8 +93,9 @@ works for circuits with memory and timers. Checking against a table, cases or an
 - 30 random circuits with feedback loops, self-wired gates and timers, 200 ticks each with random inputs:
   the same state for every part on every tick
 
-`cargo test` has 12 tests: a half adder, a NOR latch, a timer, independent lanes, tables, cases, circuit
-against circuit, parts in any order, more than 64 output bits, and the double dabble reference.
+`cargo test` has 15 tests here: a half adder, a NOR latch, a timer, independent lanes, tables, cases, circuit
+against circuit, parts in any order, more than 64 output bits, 128 input bits, the double dabble reference,
+doubling a gate that drives too many, and writing a blueprint and reading it back.
 
 ## Speed
 
@@ -131,3 +132,8 @@ and made no difference.
 - Test scripts run one copy of the circuit. Checking a memory circuit on many inputs at once needs the
   library (`sim.rs`), not the command line.
 - The optimizers in `optimizers/fable` do not use it yet.
+
+## For generators
+
+`src/build.rs` has what a generator needs: a `Builder` that folds constants away and shares equal gates, a
+`Netlist`, and the blueprint writer. See `tools/pareto/README.md`.

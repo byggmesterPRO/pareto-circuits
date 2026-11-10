@@ -1,4 +1,0 @@
-# Build for the CPU of this machine: the simulator is mostly wide AND/OR/XOR, which the newer vector
-# instructions do several words at a time. The binary is then not meant to be copied to another computer.
-[build]
-rustflags = ["-C", "target-cpu=native"]
