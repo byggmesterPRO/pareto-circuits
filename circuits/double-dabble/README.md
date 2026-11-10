@@ -46,8 +46,8 @@ python circuits/double-dabble/generator/generate.py <bits> <out netlist.json>
 ```
 
 Works for any number of bits. It builds the classic shift-and-add-3 chain from a 7-gate add-3 cell, which is
-the fewest gates such a cell can have on its own. Verified on every input at 4, 8, 12 and 16 bits and by sampling
-at 32 bits.
+the fewest gates such a cell can have on its own. Verified on every input at 4, 8, 12, 16, 20, 24, 28 and
+32 bits (the larger ones with `tools/logic-sim`).
 
 | Bits | Gates | Ticks |
 |---|---|---|
