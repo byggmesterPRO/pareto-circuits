@@ -8,6 +8,8 @@
 
 use logic_sim::build::{Builder, Design, Netlist, S};
 
+pub const SIZES: [usize; 6] = [2, 4, 8, 16, 32, 64];
+
 /// Every design for this size. The tool that makes builds measures them and picks the winners.
 pub fn designs(bits: usize) -> Result<Vec<Design>, String> {
     Ok(vec![Design::new("chain-7", chain(bits, cell_7))?, Design::new("chain-8", chain(bits, cell_8))?])

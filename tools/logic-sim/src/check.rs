@@ -11,7 +11,7 @@ use std::thread;
 /// Up to this many input bits every input is tried.
 pub const EXHAUSTIVE_BITS: u32 = 32;
 pub const SAMPLES: usize = 1_000_000;
-/// Inputs and outputs are numbers of up to this many bits.
+/// Inputs are numbers of up to this many bits. So are outputs, unless the expectation is `Wide` or a circuit.
 pub const MAX_BITS: u32 = 128;
 
 pub enum Expect<'a> {
@@ -24,6 +24,9 @@ pub enum Expect<'a> {
     Table(&'a [u128]),
     /// Chosen inputs and the output each must give.
     Cases(&'a [(u128, u128)]),
+    /// For more than 128 outputs: sets the output bits that are on for an input, in words of 64 that start
+    /// out as zero.
+    Wide(&'a (dyn Fn(u128, &mut [u64]) + Sync)),
     /// Another circuit with the same pins: the two must agree.
     Circuit(&'a Circuit),
 }
@@ -159,8 +162,11 @@ impl Flat {
 pub fn check(c: &Circuit, expect: &Expect, threads: usize, hard: &[u128]) -> Result<Checked, String> {
     let flat = Flat::new(c)?;
     let bits = c.inputs.len() as u32;
-    if bits > MAX_BITS || c.outputs.len() as u32 > MAX_BITS {
-        return Err(format!("{bits} input bits and {} output bits; this checker handles up to {MAX_BITS} of each", c.outputs.len()));
+    if bits > MAX_BITS {
+        return Err(format!("{bits} input bits; this checker handles up to {MAX_BITS}"));
+    }
+    if c.outputs.len() as u32 > MAX_BITS && !matches!(expect, Expect::Wide(_) | Expect::Circuit(_)) {
+        return Err(format!("{} output bits; above {MAX_BITS} the expected outputs have to be given bit by bit", c.outputs.len()));
     }
     let reference = match expect {
         Expect::Circuit(r) => {
@@ -207,6 +213,9 @@ pub fn check(c: &Circuit, expect: &Expect, threads: usize, hard: &[u128]) -> Res
                 let mut ref_vals = vec![0u64; reference.as_ref().map_or(0, |r| r.slots()) * w];
                 let (mut lo, mut hi) = ([0u64; 64], [0u64; 64]);
                 let wide = flat.outputs.len() > 64;
+                let chunks = flat.outputs.len().div_ceil(64);
+                let mut want = vec![[0u64; 64]; if matches!(expect, Expect::Wide(_)) { chunks } else { 0 }];
+                let mut buf = vec![0u64; chunks];
                 loop {
                     let k = next_block.fetch_add(1, Ordering::Relaxed);
                     if k >= blocks {
@@ -247,6 +256,17 @@ pub fn check(c: &Circuit, expect: &Expect, threads: usize, hard: &[u128]) -> Res
                             for (o, ro) in flat.outputs.iter().zip(&rf.outputs) {
                                 diff |= o.map_or(0, |o| vals[o as usize * w + j]) ^ ro.map_or(0, |o| ref_vals[o as usize * w + j]);
                             }
+                        } else if let Expect::Wide(f) = expect {
+                            want.iter_mut().for_each(|ch| ch.fill(0));
+                            for l in 0..n {
+                                buf.fill(0);
+                                f(x_at(j * 64 + l), &mut buf);
+                                want.iter_mut().zip(&buf).for_each(|(ch, &v)| ch[l] = v);
+                            }
+                            want.iter_mut().for_each(transpose64);
+                            for (b, o) in flat.outputs.iter().enumerate() {
+                                diff |= o.map_or(0, |o| vals[o as usize * w + j]) ^ want[b / 64][b % 64];
+                            }
                         } else {
                             // the wanted values of 64 test inputs, turned into one word per output bit
                             hi.fill(0);
@@ -260,7 +280,7 @@ pub fn check(c: &Circuit, expect: &Expect, threads: usize, hard: &[u128]) -> Res
                                             Expect::Function(f) | Expect::Run(f, _) => f(x),
                                             Expect::Table(t) => t[x as usize],
                                             Expect::Cases(cases) => cases[(k * block_rows) as usize + j * 64 + l].1,
-                                            Expect::Circuit(_) => unreachable!(),
+                                            Expect::Circuit(_) | Expect::Wide(_) => unreachable!(),
                                         };
                                         lo[l] = want as u64;
                                         hi[l] = (want >> 64) as u64;

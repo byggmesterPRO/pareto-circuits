@@ -10,6 +10,8 @@
 
 use logic_sim::build::{Builder, Design, Netlist, S};
 
+pub const SIZES: [usize; 6] = [2, 4, 8, 16, 32, 64];
+
 /// Every design for this size. The tool that makes builds measures them and picks the winners.
 pub fn designs(n: usize) -> Result<Vec<Design>, String> {
     let mut out = vec![Design::new("ripple", ripple(n))?, Design::new("lookahead", blocks(n, n))?];

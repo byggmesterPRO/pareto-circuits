@@ -3,37 +3,105 @@
 //! Inputs and outputs are numbers: input pin i is bit i of the input number, output pin i is bit i of the
 //! output number. A family with several operands packs them into the input number and says how.
 
+use crate::check::Expect;
+
 pub struct Family {
     pub bits: u32,
     pub out_bits: u32,
-    /// The correct output for an input.
+    /// The correct output for an input. For a family with more than 128 outputs this is not used.
     pub f: Box<dyn Fn(u128) -> u128 + Send + Sync>,
     /// The outputs of inputs in a row, starting at the first argument: low 64 bits and the bits above. Has to
     /// give exactly what `f` gives, only quicker. Used when every input is tried (32 input bits or fewer).
     pub run: Box<dyn Fn(u64, &mut [u64], &mut [u64]) + Send + Sync>,
+    /// For a family with more than 128 outputs: sets the output bits that are on, in words of 64.
+    pub wide: Option<Box<dyn Fn(u128, &mut [u64]) + Send + Sync>>,
     /// Inputs that are likely to catch a mistake, for sizes where the inputs are sampled.
     pub hard: Vec<u128>,
 }
 
-pub const FAMILIES: [&str; 2] = ["adder", "double-dabble"];
+impl Family {
+    /// What a circuit of this family is checked against.
+    pub fn expect(&self) -> Expect<'_> {
+        match &self.wide {
+            Some(w) => Expect::Wide(&**w),
+            None => Expect::Run(&*self.f, &*self.run),
+        }
+    }
+
+    fn new(bits: u32, out_bits: u32, f: impl Fn(u128) -> u128 + Copy + Send + Sync + 'static, hard: Vec<u128>) -> Family {
+        Family {
+            bits,
+            out_bits,
+            f: Box::new(f),
+            run: Box::new(move |first, lo, hi| {
+                for (k, (l, h)) in lo.iter_mut().zip(hi.iter_mut()).enumerate() {
+                    let v = f(first as u128 + k as u128);
+                    *l = v as u64;
+                    *h = (v >> 64) as u64;
+                }
+            }),
+            wide: None,
+            hard,
+        }
+    }
+}
+
+pub const FAMILIES: [&str; 10] =
+    ["adder", "barrel-shifter", "comparator", "decoder", "demultiplexer", "double-dabble", "multiplexer", "multiplier", "seven-segment", "subtractor"];
 
 pub fn family(name: &str, size: &str) -> Result<Family, String> {
     match name {
         "adder" => adder(size),
+        "barrel-shifter" => barrel_shifter(size),
+        "comparator" => comparator(size),
+        "decoder" => decoder(size),
+        "demultiplexer" => demultiplexer(size),
         "double-dabble" => double_dabble(size),
+        "multiplexer" => multiplexer(size),
+        "multiplier" => multiplier(size),
+        "seven-segment" => seven_segment(size),
+        "subtractor" => subtractor(size),
         _ => Err(format!("unknown family \"{name}\"; known: {}", FAMILIES.join(", "))),
     }
 }
 
-fn bits_of(family: &str, size: &str, max: u32) -> Result<u32, String> {
+/// The number in a size like "16bit".
+pub fn bits_of(family: &str, size: &str, max: u32) -> Result<u32, String> {
     size.strip_suffix("bit").and_then(|s| s.parse().ok()).filter(|b| (1..=max).contains(b)).ok_or(format!("{family}: bad size \"{size}\" (1bit to {max}bit)"))
+}
+
+/// The same for a size that has to be a power of two; also gives its logarithm.
+pub fn power_of_two(family: &str, size: &str, max: u32) -> Result<(u32, u32), String> {
+    let n = bits_of(family, size, max)?;
+    if n < 2 || !n.is_power_of_two() {
+        return Err(format!("{family}: size \"{size}\" has to be a power of two, 2bit or more"));
+    }
+    Ok((n, n.trailing_zeros()))
+}
+
+fn mask(n: u32) -> u128 {
+    if n >= 128 { u128::MAX } else { (1u128 << n) - 1 }
+}
+
+/// A source of test inputs that is the same every time.
+struct Random(u64);
+impl Random {
+    fn word(&mut self) -> u128 {
+        self.0 ^= self.0 >> 12;
+        self.0 ^= self.0 << 25;
+        self.0 ^= self.0 >> 27;
+        self.0.wrapping_mul(0x2545F4914F6CDD1D) as u128
+    }
+    /// Mostly zeros.
+    fn sparse(&mut self) -> u128 {
+        self.word() & self.word() & self.word()
+    }
 }
 
 /// Binary to BCD. Output digit d (ones first) is bits 4d .. 4d+3, least significant first.
 fn double_dabble(size: &str) -> Result<Family, String> {
     let bits = bits_of("double-dabble", size, 64)?;
-    let top = (1u128 << bits) - 1;
-    let digits = top.to_string().len() as u32;
+    let digits = mask(bits).to_string().len() as u32;
     let f = move |x: u128| {
         let (mut x, mut out) = (x as u64, 0u128);
         for d in 0..digits {
@@ -42,45 +110,40 @@ fn double_dabble(size: &str) -> Result<Family, String> {
         }
         out
     };
-    Ok(Family {
-        bits,
-        out_bits: 4 * digits,
-        f: Box::new(f),
-        // count in decimal: add 1 and carry, instead of dividing for every input
-        run: Box::new(move |first, lo, hi| {
-            let mut v = f(first as u128);
-            for (l, h) in lo.iter_mut().zip(hi.iter_mut()) {
-                *l = v as u64;
-                *h = (v >> 64) as u64;
-                let mut d = 0;
-                loop {
-                    if d >= 4 * digits {
-                        v = 0; // past the largest value; never read
-                        break;
-                    }
-                    if (v >> d) & 15 == 9 {
-                        v &= !(15u128 << d);
-                        d += 4;
-                    } else {
-                        v += 1u128 << d;
-                        break;
-                    }
+    let mut fam = Family::new(bits, 4 * digits, f, vec![]);
+    // count in decimal: add 1 and carry, instead of dividing for every input
+    fam.run = Box::new(move |first, lo, hi| {
+        let mut v = f(first as u128);
+        for (l, h) in lo.iter_mut().zip(hi.iter_mut()) {
+            *l = v as u64;
+            *h = (v >> 64) as u64;
+            let mut d = 0;
+            loop {
+                if d >= 4 * digits {
+                    v = 0; // past the largest value; never read
+                    break;
+                }
+                if (v >> d) & 15 == 9 {
+                    v &= !(15u128 << d);
+                    d += 4;
+                } else {
+                    v += 1u128 << d;
+                    break;
                 }
             }
-        }),
-        hard: vec![],
-    })
+        }
+    });
+    Ok(fam)
 }
 
 /// Adds two numbers of n bits. Inputs: a is bits 0 .. n-1, b is bits n .. 2n-1. Outputs: the sum in bits
 /// 0 .. n-1 and the carry out in bit n.
 fn adder(size: &str) -> Result<Family, String> {
     let n = bits_of("adder", size, 64)?;
-    let mask = if n == 64 { u64::MAX as u128 } else { (1u128 << n) - 1 };
-    let f = move |x: u128| (x & mask) + (x >> n & mask);
+    let m = mask(n);
     // long carry chains: a run of ones in a, and a single one in b at its low end
     let mut hard = vec![];
-    let run = |i: u32, j: u32| (mask >> (n - 1 - j)) & !((1u128 << i) - 1);
+    let run = |i: u32, j: u32| (m >> (n - 1 - j)) & !((1u128 << i) - 1);
     for i in 0..n {
         for j in i..n {
             hard.push(run(i, j) | (1u128 << i) << n);
@@ -88,29 +151,138 @@ fn adder(size: &str) -> Result<Family, String> {
         }
     }
     // b mostly the opposite of a: every bit passes a carry on, with a few bits that start or stop one
-    let mut s: u64 = 0xD1B54A32D192ED03;
-    let mut word = || {
-        s ^= s >> 12;
-        s ^= s << 25;
-        s ^= s >> 27;
-        s.wrapping_mul(0x2545F4914F6CDD1D) as u128
-    };
+    let mut r = Random(0xD1B54A32D192ED03);
     for _ in 0..20_000 {
-        let a = word() & mask;
-        let b = (!a ^ (word() & word() & word())) & mask;
-        hard.push(a | b << n);
+        let a = r.word() & m;
+        hard.push(a | ((!a ^ r.sparse()) & m) << n);
     }
-    Ok(Family {
-        bits: 2 * n,
-        out_bits: n + 1,
-        f: Box::new(f),
-        run: Box::new(move |first, lo, hi| {
-            for (k, (l, h)) in lo.iter_mut().zip(hi.iter_mut()).enumerate() {
-                let v = f(first as u128 + k as u128);
-                *l = v as u64;
-                *h = (v >> 64) as u64;
-            }
-        }),
-        hard,
-    })
+    Ok(Family::new(2 * n, n + 1, move |x| (x & m) + (x >> n & m), hard))
+}
+
+/// a - b for two numbers of n bits. Inputs: a is bits 0 .. n-1, b is bits n .. 2n-1. Outputs: the difference
+/// in bits 0 .. n-1 (wrapping around below zero) and the borrow in bit n, which is on when a < b.
+fn subtractor(size: &str) -> Result<Family, String> {
+    let n = bits_of("subtractor", size, 64)?;
+    let m = mask(n);
+    // long borrow chains: b has a single one, and a is zero (the borrow runs to the top) or has a single one
+    // further up (the borrow stops there)
+    let mut hard = vec![];
+    for i in 0..n {
+        hard.push((1u128 << i) << n);
+        for j in i + 1..n {
+            hard.push(1u128 << j | (1u128 << i) << n);
+        }
+    }
+    // a mostly equal to b: every bit passes a borrow on
+    let mut r = Random(0x9E3779B97F4A7C15);
+    for _ in 0..20_000 {
+        let b = r.word() & m;
+        hard.push(((b ^ r.sparse()) & m) | b << n);
+    }
+    Ok(Family::new(2 * n, n + 1, move |x| {
+        let (a, b) = (x & m, x >> n & m);
+        (a.wrapping_sub(b) & m) | ((a < b) as u128) << n
+    }, hard))
+}
+
+/// Compares two numbers of n bits. Inputs: a is bits 0 .. n-1, b is bits n .. 2n-1. Outputs: bit 0 is a < b,
+/// bit 1 is a = b, bit 2 is a > b.
+fn comparator(size: &str) -> Result<Family, String> {
+    let n = bits_of("comparator", size, 64)?;
+    let m = mask(n);
+    // equal numbers, and numbers that differ in one bit only: random inputs almost never hit these
+    let mut hard = vec![];
+    let mut r = Random(0xA0761D6478BD642F);
+    for _ in 0..2_000 {
+        let a = r.word() & m;
+        hard.push(a | a << n);
+    }
+    for i in 0..n {
+        for _ in 0..300 {
+            let a = r.word() & m;
+            hard.push(a | (a ^ 1u128 << i) << n);
+        }
+    }
+    Ok(Family::new(2 * n, 3, move |x| {
+        let (a, b) = (x & m, x >> n & m);
+        (a < b) as u128 | ((a == b) as u128) << 1 | ((a > b) as u128) << 2
+    }, hard))
+}
+
+/// Multiplies two numbers of n bits. Inputs: a is bits 0 .. n-1, b is bits n .. 2n-1. Outputs: the product,
+/// 2n bits.
+fn multiplier(size: &str) -> Result<Family, String> {
+    let n = bits_of("multiplier", size, 64)?;
+    let m = mask(n);
+    let mut hard = vec![m | m << n];
+    for i in 0..n {
+        for j in 0..n {
+            hard.push(1u128 << i | (1u128 << j) << n);
+            hard.push((m >> i) | (m >> j) << n);
+        }
+    }
+    Ok(Family::new(2 * n, 2 * n, move |x| (x & m) * (x >> n & m), hard))
+}
+
+/// One output line per value of the input: line k is on when the n input bits spell k, the others are off.
+fn decoder(size: &str) -> Result<Family, String> {
+    let n = bits_of("decoder", size, 10)?;
+    let mut fam = Family::new(n, 1 << n, move |x| if x < 128 { 1u128 << x } else { 0 }, vec![]);
+    if n > 7 {
+        fam.wide = Some(Box::new(|x, out| out[(x / 64) as usize] |= 1 << (x % 64)));
+    }
+    Ok(fam)
+}
+
+/// One data input sent to one of n output lines. Inputs: bit 0 is the data, bits 1 and up are the line number.
+/// Outputs: line k carries the data when the line number is k, and is off otherwise.
+fn demultiplexer(size: &str) -> Result<Family, String> {
+    let (n, _) = power_of_two("demultiplexer", size, 256)?;
+    let mut fam = Family::new(1 + n.trailing_zeros(), n, move |x| if x >> 1 < 128 { (x & 1) << (x >> 1) } else { 0 }, vec![]);
+    if n > 128 {
+        fam.wide = Some(Box::new(|x, out| out[(x >> 1) as usize / 64] |= ((x & 1) as u64) << ((x >> 1) % 64)));
+    }
+    Ok(fam)
+}
+
+/// One of n data inputs sent to the output. Inputs: the data lines are bits 0 .. n-1, the line number is the
+/// bits above. Output: the chosen line.
+fn multiplexer(size: &str) -> Result<Family, String> {
+    let (n, s) = power_of_two("multiplexer", size, 64)?;
+    let m = mask(n);
+    let mut hard = vec![];
+    for k in 0..n as u128 {
+        for d in [0, m, 1u128 << k, m ^ 1u128 << k] {
+            hard.push(d | k << n);
+        }
+    }
+    Ok(Family::new(n + s, 1, move |x| (x & m) >> (x >> n) & 1, hard))
+}
+
+/// Shifts an n-bit number left. Inputs: the number is bits 0 .. n-1, the shift amount is the bits above
+/// (log2 n of them). Outputs: the number moved up by that many places; bits that fall off the top are lost and
+/// zeros come in at the bottom.
+fn barrel_shifter(size: &str) -> Result<Family, String> {
+    let (n, s) = power_of_two("barrel-shifter", size, 64)?;
+    let m = mask(n);
+    let mut hard = vec![];
+    for amount in 0..n as u128 {
+        hard.push(m | amount << n);
+        for i in 0..n {
+            hard.push(1u128 << i | amount << n);
+            hard.push((m ^ 1u128 << i) | amount << n);
+        }
+    }
+    Ok(Family::new(n + s, n, move |x| ((x & m) << (x >> n)) & m, hard))
+}
+
+/// Segments of a seven-segment display for one hexadecimal digit. Inputs: the digit, 4 bits. Outputs: bit 0 is
+/// segment a (top), then b (top right), c (bottom right), d (bottom), e (bottom left), f (top left), g (middle).
+/// A to F are shown as A, b, C, d, E, F.
+fn seven_segment(size: &str) -> Result<Family, String> {
+    if size != "4bit" {
+        return Err("seven-segment: the only size is 4bit, one hexadecimal digit".into());
+    }
+    const GLYPHS: [u8; 16] = [0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F, 0x77, 0x7C, 0x39, 0x5E, 0x79, 0x71];
+    Ok(Family::new(4, 7, |x| GLYPHS[(x & 15) as usize] as u128, vec![]))
 }

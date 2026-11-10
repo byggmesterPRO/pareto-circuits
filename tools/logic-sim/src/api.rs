@@ -89,7 +89,7 @@ fn verify(c: &Circuit, fam: &str, size: &str) -> Result<Value, String> {
     if !problems.is_empty() {
         return Ok(json!({ "problems": problems, "warnings": [] }));
     }
-    Ok(report(c, check(c, &Expect::Run(&*f.f, &*f.run), threads(), &f.hard)?))
+    Ok(report(c, check(c, &f.expect(), threads(), &f.hard)?))
 }
 
 fn run(req: &Value) -> Result<Value, String> {

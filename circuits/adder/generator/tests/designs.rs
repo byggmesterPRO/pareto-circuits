@@ -7,7 +7,7 @@ fn every_design_adds() {
     for n in 1..=9 {
         let fam = family("adder", &format!("{n}bit")).unwrap();
         for d in adder_generator::designs(n).unwrap() {
-            let res = check(&d.netlist.circuit(), &Expect::Run(&*fam.f, &*fam.run), 4, &fam.hard).unwrap();
+            let res = check(&d.netlist.circuit(), &fam.expect(), 4, &fam.hard).unwrap();
             assert!(res.exhaustive && res.wrong == 0, "{} at {n} bits: {} wrong", d.name, res.wrong);
         }
     }
@@ -18,7 +18,7 @@ fn large_sizes_on_hard_cases() {
     for n in [33, 64] {
         let fam = family("adder", &format!("{n}bit")).unwrap();
         for d in adder_generator::designs(n).unwrap() {
-            let res = check(&d.netlist.circuit(), &Expect::Run(&*fam.f, &*fam.run), 4, &fam.hard).unwrap();
+            let res = check(&d.netlist.circuit(), &fam.expect(), 4, &fam.hard).unwrap();
             assert_eq!(res.wrong, 0, "{} at {n} bits", d.name);
         }
     }

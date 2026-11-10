@@ -10,6 +10,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "barrel-shifter-generator"
+version = "0.1.0"
+dependencies = [
+ "logic-sim",
+]
+
+[[package]]
+name = "comparator-generator"
+version = "0.1.0"
+dependencies = [
+ "logic-sim",
+]
+
+[[package]]
+name = "decoder-generator"
+version = "0.1.0"
+dependencies = [
+ "logic-sim",
+]
+
+[[package]]
+name = "demultiplexer-generator"
+version = "0.1.0"
+dependencies = [
+ "logic-sim",
+]
+
+[[package]]
 name = "double-dabble-generator"
 version = "0.1.0"
 dependencies = [
@@ -36,13 +64,35 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 
 [[package]]
+name = "multiplexer-generator"
+version = "0.1.0"
+dependencies = [
+ "logic-sim",
+]
+
+[[package]]
+name = "multiplier-generator"
+version = "0.1.0"
+dependencies = [
+ "logic-sim",
+]
+
+[[package]]
 name = "pareto"
 version = "0.1.0"
 dependencies = [
  "adder-generator",
+ "barrel-shifter-generator",
+ "comparator-generator",
+ "decoder-generator",
+ "demultiplexer-generator",
  "double-dabble-generator",
  "logic-sim",
+ "multiplexer-generator",
+ "multiplier-generator",
  "serde_json",
+ "seven-segment-generator",
+ "subtractor-generator",
 ]
 
 [[package]]
@@ -103,6 +153,20 @@ dependencies = [
  "serde",
  "serde_core",
  "zmij",
+]
+
+[[package]]
+name = "seven-segment-generator"
+version = "0.1.0"
+dependencies = [
+ "logic-sim",
+]
+
+[[package]]
+name = "subtractor-generator"
+version = "0.1.0"
+dependencies = [
+ "logic-sim",
 ]
 
 [[package]]

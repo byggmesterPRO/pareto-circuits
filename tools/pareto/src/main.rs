@@ -5,7 +5,7 @@
 //! gates, balanced is lowest gates x ticks. A slot is only written when the winner beats what is in it.
 
 use logic_sim::build::{Design, Netlist};
-use logic_sim::check::{check, Expect};
+use logic_sim::check::check;
 use logic_sim::circuit::load;
 use logic_sim::families::{family, FAMILIES};
 use logic_sim::validate::validate;
@@ -19,22 +19,36 @@ const USAGE: &str = "pareto: generators and builds for the circuit families
   pareto designs <family> <size>                  every design the generator has for this size, measured
   pareto netlist <family> <size> <design> <out>   write one design as a netlist.json
   pareto build <family> <size> [--write]          pick the fast, small and balanced winners for one size
-  pareto build-all <family> [--write]             the same for 2, 4, 8, 16, 32 and 64 bit
+  pareto build-all <family> [--write]             the same for every size the family has slots for
 
   --write              write the winners into circuits/<family>/builds/ (without it, only show what would happen)
   --authors a,b        who to credit in meta.json for a new slot
 
 Run it from inside the repo. Families: ";
-const STANDARD: [usize; 6] = [2, 4, 8, 16, 32, 64];
 const PROFILES: [&str; 3] = ["fast", "small", "balanced"];
 const LINK: &str = "https://github.com/byggmesterPRO/pareto-circuits";
 
+type Designs = fn(usize) -> Result<Vec<Design>, String>;
+
+/// A family's generator: the sizes it has build slots for, and its designs for a size.
+fn generator(fam: &str) -> Result<(&'static [usize], Designs), String> {
+    Ok(match fam {
+        "adder" => (&adder_generator::SIZES, adder_generator::designs),
+        "barrel-shifter" => (&barrel_shifter_generator::SIZES, barrel_shifter_generator::designs),
+        "comparator" => (&comparator_generator::SIZES, comparator_generator::designs),
+        "decoder" => (&decoder_generator::SIZES, decoder_generator::designs),
+        "demultiplexer" => (&demultiplexer_generator::SIZES, demultiplexer_generator::designs),
+        "double-dabble" => (&double_dabble_generator::SIZES, double_dabble_generator::designs),
+        "multiplexer" => (&multiplexer_generator::SIZES, multiplexer_generator::designs),
+        "multiplier" => (&multiplier_generator::SIZES, multiplier_generator::designs),
+        "seven-segment" => (&seven_segment_generator::SIZES, seven_segment_generator::designs),
+        "subtractor" => (&subtractor_generator::SIZES, subtractor_generator::designs),
+        _ => return Err(format!("no generator for \"{fam}\"; there are generators for: {}", FAMILIES.join(", "))),
+    })
+}
+
 fn designs(fam: &str, bits: usize) -> Result<Vec<Design>, String> {
-    match fam {
-        "adder" => adder_generator::designs(bits),
-        "double-dabble" => double_dabble_generator::designs(bits),
-        _ => Err(format!("no generator for \"{fam}\"; there are generators for: {}", FAMILIES.join(", "))),
-    }
+    generator(fam)?.1(bits)
 }
 
 struct Measured {
@@ -56,7 +70,7 @@ fn measure(fam: &str, size: &str, d: Design) -> Result<Measured, String> {
     if c.inputs.len() as u32 != f.bits || c.outputs.len() as u32 != f.out_bits {
         return Err(format!("{}: {} inputs and {} outputs, {fam} {size} has {} and {}", d.name, c.inputs.len(), c.outputs.len(), f.bits, f.out_bits));
     }
-    let res = check(&c, &Expect::Run(&*f.f, &*f.run), threads(), &f.hard)?;
+    let res = check(&c, &f.expect(), threads(), &f.hard)?;
     if res.wrong > 0 {
         return Err(format!("{}: {} of {} test inputs give a wrong output, for example input {}", d.name, res.wrong, res.tested, res.example.unwrap_or(0)));
     }
@@ -166,7 +180,7 @@ fn write_slot(slot: &Path, fam: &str, size: &str, profile: &str, m: &Measured, a
     // read the slot back the way the verifier does and check it once more
     let (c, _) = load(slot, None)?;
     let f = family(fam, size)?;
-    let res = check(&c, &Expect::Run(&*f.f, &*f.run), threads(), &f.hard)?;
+    let res = check(&c, &f.expect(), threads(), &f.hard)?;
     if res.wrong > 0 || c.gates() as u64 != m.gates || c.ticks().map(|t| t as u64) != Some(m.ticks) {
         return Err(format!("the slot written to {} does not check out", slot.display()));
     }
@@ -187,7 +201,7 @@ fn build(fam: &str, size: &str, write: bool, authors: &[String]) -> Result<(), S
             (Some((g, t, v, _)), false) => format!("kept v{v} ({g} gates, {t} ticks)"),
         };
         let done = if write && wins { format!(", wrote v{}", write_slot(&slot, fam, size, profile, best, authors)?) } else { String::new() };
-        println!("{fam:<14}{size:>6} {profile:<9} {:<14}{:>6} gates{:>5} ticks  {:<10} {what}{done}", best.name, best.gates, best.ticks, best.verified);
+        println!("{fam:<14}{size:>6} {profile:<9} {:<18}{:>6} gates{:>5} ticks  {:<10} {what}{done}", best.name, best.gates, best.ticks, best.verified);
     }
     Ok(())
 }
@@ -207,10 +221,10 @@ fn run(mut args: Vec<String>) -> Result<(), String> {
         "designs" => {
             let (fam, size) = (arg(1)?, arg(2)?);
             let all = measured(fam, size)?;
-            println!("{:<14}{:>7}{:>7}{:>14}  {:<11}wins", "design", "gates", "ticks", "gates x ticks", "verified");
+            println!("{:<18}{:>7}{:>7}{:>14}  {:<11}wins", "design", "gates", "ticks", "gates x ticks", "verified");
             for m in &all {
                 let wins: Vec<&str> = PROFILES.into_iter().filter(|p| all.iter().min_by_key(|o| score(p, o.gates, o.ticks)).is_some_and(|b| b.name == m.name)).collect();
-                println!("{:<14}{:>7}{:>7}{:>14}  {:<11}{}", m.name, m.gates, m.ticks, m.gates * m.ticks, m.verified, wins.join(", "));
+                println!("{:<18}{:>7}{:>7}{:>14}  {:<11}{}", m.name, m.gates, m.ticks, m.gates * m.ticks, m.verified, wins.join(", "));
             }
             Ok(())
         }
@@ -223,8 +237,36 @@ fn run(mut args: Vec<String>) -> Result<(), String> {
             Ok(())
         }
         "build" => build(arg(1)?, arg(2)?, write, &authors),
-        "build-all" => STANDARD.iter().try_for_each(|b| build(arg(1)?, &format!("{b}bit"), write, &authors)),
+        "build-all" => generator(arg(1)?)?.0.iter().try_for_each(|b| build(arg(1)?, &format!("{b}bit"), write, &authors)),
         other => Err(format!("unknown command \"{other}\"\n\n{USAGE}{}", FAMILIES.join(", "))),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every design of every family, at every size with 16 input bits or fewer, on every input.
+    #[test]
+    fn every_design_is_correct() {
+        for fam in FAMILIES {
+            let mut sizes: Vec<usize> = generator(fam).unwrap().0.to_vec();
+            sizes.extend([1, 3, 5, 6, 7]);
+            for n in sizes {
+                let size = format!("{n}bit");
+                let Ok(f) = family(fam, &size) else { continue };
+                if f.bits > 16 {
+                    continue;
+                }
+                let Ok(all) = designs(fam, n) else { continue };
+                assert!(!all.is_empty(), "{fam} {size} has no designs");
+                for d in all {
+                    let name = d.name.clone();
+                    let m = measure(fam, &size, d).unwrap_or_else(|e| panic!("{fam} {size} {name}: {e}"));
+                    assert_eq!(m.verified, "exhaustive");
+                }
+            }
+        }
     }
 }
 

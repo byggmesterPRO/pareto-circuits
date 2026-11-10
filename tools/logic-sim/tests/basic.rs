@@ -172,12 +172,12 @@ fn a_broken_gate_is_caught_on_the_fast_path() {
         [0, [3, 6]]                                 // 11 = ones bit 3
     ], "outputs": [0, 7, 10, 11, 5, null, null, null]});
     let c = Circuit::from_netlist(&net).unwrap();
-    let good = check(&c, &Expect::Run(&*fam.f, &*fam.run), 2, &[]).unwrap();
+    let good = check(&c, &fam.expect(), 2, &[]).unwrap();
     assert_eq!((good.wrong, good.tested, good.exhaustive), (0, 16, true));
     let mut bad = net.clone();
     bad["gates"][3][0] = json!(5);
     let c = Circuit::from_netlist(&bad).unwrap();
-    let res = check(&c, &Expect::Run(&*fam.f, &*fam.run), 2, &[]).unwrap();
+    let res = check(&c, &fam.expect(), 2, &[]).unwrap();
     assert_eq!((res.wrong, res.example), (16, Some(0u128)));
 }
 
@@ -201,12 +201,12 @@ fn adder_family_and_128_input_bits() {
         let net = b.finish(&outs).unwrap();
         assert_eq!(net.gates.len(), 4 * n - 1);
         let c = net.circuit();
-        let res = check(&c, &Expect::Run(&*fam.f, &*fam.run), 4, &fam.hard).unwrap();
+        let res = check(&c, &fam.expect(), 4, &fam.hard).unwrap();
         assert_eq!((res.wrong, res.exhaustive), (0, n == 3));
         // the same adder with the top carry dropped must fail, on the long carry chains at least
         let mut broken = net.clone();
         *broken.outputs.last_mut().unwrap() = None;
-        let res = check(&broken.circuit(), &Expect::Run(&*fam.f, &*fam.run), 4, &fam.hard).unwrap();
+        let res = check(&broken.circuit(), &fam.expect(), 4, &fam.hard).unwrap();
         assert!(res.wrong > 0);
     }
 }

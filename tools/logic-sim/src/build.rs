@@ -33,6 +33,8 @@ pub struct Netlist {
     pub inputs: usize,
     pub gates: Vec<(u8, Vec<u32>)>,
     pub outputs: Vec<Option<u32>>,
+    /// Output gates per row in the blueprint; 0 puts them all in one row.
+    pub grid: usize,
 }
 
 pub struct Builder {
@@ -131,7 +133,7 @@ impl Builder {
                 S::One => return Err(format!("output bit {b} is always 1, which has no gate to stand for it")),
             });
         }
-        let mut net = Netlist { inputs: self.inputs, gates: self.gates, outputs: outs };
+        let mut net = Netlist { inputs: self.inputs, gates: self.gates, outputs: outs, grid: 0 };
         net.prune();
         net.split_fan_out()?;
         Ok(net)
@@ -143,7 +145,7 @@ impl Netlist {
         let c = Circuit::from_netlist(v)?;
         let n = c.inputs.len();
         let gates = (n..c.len()).map(|e| (if let Kind::Gate(m) = c.kind[e] { m } else { 0 }, c.ins[e].clone())).collect();
-        Ok(Netlist { inputs: n, gates, outputs: c.outputs })
+        Ok(Netlist { inputs: n, gates, outputs: c.outputs, grid: 0 })
     }
 
     pub fn to_json(&self) -> Value {
@@ -194,7 +196,8 @@ impl Netlist {
     }
 
     /// A gate that drives more than 255 parts is doubled: copies with the same inputs share its readers. That
-    /// adds gates but no ticks. Fails if an input pin drives too many, or a gate has too many inputs.
+    /// adds gates but no ticks. An input pin that drives too many gets buffers (OR gates with one input)
+    /// between it and its readers, which costs a tick on those paths. Fails if a gate has too many inputs.
     pub fn split_fan_out(&mut self) -> Result<(), String> {
         loop {
             let n = self.inputs;
@@ -205,7 +208,28 @@ impl Netlist {
             // the last one first: doubling a gate adds readers to the gates before it
             let Some(sig) = (0..readers.len()).rev().find(|&s| readers[s].len() > MAX_CONNECTIONS) else { return Ok(()) };
             if sig < n {
-                return Err(format!("input {sig} drives {} gates, the game allows {MAX_CONNECTIONS}", readers[sig].len()));
+                // inverters and other one-input gates stay on the pin, so they are not a tick behind the buffers
+                let mut behind: Vec<u32> = readers[sig].iter().copied().filter(|&r| self.gates[r as usize - n].1.len() > 1).collect();
+                if behind.is_empty() {
+                    behind = readers[sig].clone();
+                }
+                let copies = behind.len().div_ceil(MAX_CONNECTIONS);
+                for (_, gins) in self.gates.iter_mut() {
+                    gins.iter_mut().filter(|i| **i as usize >= n).for_each(|i| *i += copies as u32);
+                }
+                for o in self.outputs.iter_mut().flatten().filter(|o| **o as usize >= n) {
+                    *o += copies as u32;
+                }
+                for _ in 0..copies {
+                    self.gates.insert(0, (OR, vec![sig as u32]));
+                }
+                for (k, &r) in behind.iter().enumerate() {
+                    let buffer = (n + k / MAX_CONNECTIONS) as u32;
+                    for i in self.gates[r as usize - n + copies].1.iter_mut().filter(|i| **i as usize == sig) {
+                        *i = buffer;
+                    }
+                }
+                continue;
             }
             let copies = readers[sig].len().div_ceil(MAX_CONNECTIONS);
             let (mode, ins) = self.gates[sig - n].clone();
@@ -245,12 +269,16 @@ impl Netlist {
     /// The blueprint and its pins ({"inputs": [controller id], "outputs": [controller id or null]}).
     ///
     /// Layout: a solid block `width` wide. Row 0 holds the input gates at x = bit, row 1 the output gates at
-    /// x = bit, and the other gates fill the cells that are left and then the rows behind. Parts next to each
-    /// other touch, so the build is one piece as long as there are enough other gates to fill the gaps.
+    /// x = bit (with `grid` set: `grid` to a row, in as many rows as it takes), and the other gates fill the
+    /// cells that are left and then the rows behind. Parts next to each other touch, so the build is one piece
+    /// as long as there are enough other gates to fill the gaps.
     pub fn blueprint(&self) -> (Value, Value) {
         let n = self.inputs;
         let readers = self.readers();
-        let width = n.max(self.outputs.len()).max(1) as i64;
+        let per_row = if self.grid > 0 { self.grid } else { self.outputs.len().max(1) };
+        let width = n.max(per_row) as i64;
+        let out_rows = self.outputs.len().div_ceil(per_row).max(1) as i64;
+        let cell_of = |b: usize| ((b % per_row) as i64, 1 + (b / per_row) as i64);
         let mut out_bit: HashMap<u32, usize> = HashMap::new();
         for (b, o) in self.outputs.iter().enumerate() {
             if let Some(o) = o {
@@ -260,10 +288,10 @@ impl Netlist {
             }
         }
         // free cells for the other gates: gaps in the output row, the rest of the input row, then rows behind
-        let taken: Vec<i64> = out_bit.values().map(|&b| b as i64).collect();
-        let mut free: Vec<(i64, i64)> = (0..width).filter(|x| !taken.contains(x)).map(|x| (x, 1)).collect();
+        let taken: std::collections::HashSet<(i64, i64)> = out_bit.values().map(|&b| cell_of(b)).collect();
+        let mut free: Vec<(i64, i64)> = (1..=out_rows).flat_map(|y| (0..width).map(move |x| (x, y))).filter(|c| !taken.contains(c)).collect();
         free.extend((n as i64..width).map(|x| (x, 0)));
-        let mut cells = free.into_iter().chain((2..).flat_map(|y| (0..width).map(move |x| (x, y))));
+        let mut cells = free.into_iter().chain((1 + out_rows..).flat_map(|y| (0..width).map(move |x| (x, y))));
         let part = |sig: usize, mode: u8, color: &str, x: i64, y: i64| {
             let to: Vec<Value> = readers[sig].iter().map(|r| json!({ "id": r })).collect();
             json!({
@@ -280,7 +308,7 @@ impl Netlist {
         for (g, (mode, _)) in self.gates.iter().enumerate() {
             let sig = n + g;
             childs.push(match out_bit.get(&(sig as u32)) {
-                Some(&b) => part(sig, *mode, OUTPUT_COLOR, b as i64, 1),
+                Some(&b) => part(sig, *mode, OUTPUT_COLOR, cell_of(b).0, cell_of(b).1),
                 None => {
                     let (x, y) = cells.next().unwrap();
                     part(sig, *mode, GATE_COLOR, x, y)

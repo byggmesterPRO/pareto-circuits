@@ -47,7 +47,8 @@ them in its `meta.json`, and a netlist has them built in.
   `#<controller id>` for any part. `//` starts a comment.
 
 A family in `src/families.rs` is only needed for `verify` on build slots, and for sizes where a table would be
-too big. `adder` and `double-dabble` are there so far.
+too big. There so far: `adder`, `barrel-shifter`, `comparator`, `decoder`, `demultiplexer`, `double-dabble`,
+`multiplexer`, `multiplier`, `seven-segment` and `subtractor`.
 
 Inputs and outputs can be up to 128 bits wide each, which is what a 64bit adder needs.
 

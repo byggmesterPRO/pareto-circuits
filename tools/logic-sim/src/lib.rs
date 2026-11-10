@@ -5,6 +5,7 @@
 //! - `check`: is a circuit without memory correct, on every input
 //! - `families`: what each circuit family has to compute
 //! - `build`: netlists, a circuit builder for generators, and the blueprint writer
+//! - `parts`: pieces that several generators share (carry networks, full adders, decoders)
 //! - `validate`: can it be built in the game
 //! - `delay`: worst output delay seen over random input changes
 //! - `script`: small test scripts (set, tick, check)
@@ -16,6 +17,7 @@ pub mod check;
 pub mod circuit;
 pub mod delay;
 pub mod families;
+pub mod parts;
 pub mod script;
 pub mod sim;
 pub mod validate;

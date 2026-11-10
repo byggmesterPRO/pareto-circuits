@@ -6,5 +6,13 @@ edition = "2024"
 [dependencies]
 logic-sim = { path = "../logic-sim" }
 adder-generator = { path = "../../circuits/adder/generator" }
+barrel-shifter-generator = { path = "../../circuits/barrel-shifter/generator" }
+comparator-generator = { path = "../../circuits/comparator/generator" }
+decoder-generator = { path = "../../circuits/decoder/generator" }
+demultiplexer-generator = { path = "../../circuits/demultiplexer/generator" }
 double-dabble-generator = { path = "../../circuits/double-dabble/generator" }
+multiplexer-generator = { path = "../../circuits/multiplexer/generator" }
+multiplier-generator = { path = "../../circuits/multiplier/generator" }
+seven-segment-generator = { path = "../../circuits/seven-segment/generator" }
+subtractor-generator = { path = "../../circuits/subtractor/generator" }
 serde_json = "1"

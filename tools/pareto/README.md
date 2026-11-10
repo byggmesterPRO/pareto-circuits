@@ -26,16 +26,21 @@ Run it from inside the repo.
 So a generator never has to say which design is the fast one. It offers what it has, and the numbers decide.
 A one-off search result that sits in a slot stays there until a design beats it.
 
-`build-all` does the standard sizes: 2, 4, 8, 16, 32 and 64 bit.
+`build-all` does every size the family has slots for. Each generator lists its own in `SIZES`: mostly 2, 4,
+8, 16, 32 and 64 bit.
 
 ## Adding a family
 
 1. Say what it computes: add it to `tools/logic-sim/src/families.rs` (inputs and outputs as numbers, the
    function, and inputs that are likely to catch mistakes at large sizes).
-2. Make `circuits/<family>/generator/` a small Rust library with `designs(bits)`, built on
+2. Make `circuits/<family>/generator/` a small Rust library with `SIZES` and `designs(size)`, built on
    `logic_sim::build::Builder`. The builder folds constants away, shares equal gates, and doubles a gate that
-   would drive more than 255 others.
-3. Add the crate to the workspace `Cargo.toml` and to `designs()` in `tools/pareto/src/main.rs`.
-4. Give it a test like `circuits/adder/generator/tests/designs.rs`: every design, small sizes, every input.
+   would drive more than 255 others. `logic_sim::parts` has pieces to reuse: carry networks, the 4-gate full
+   adder, decoders, and a 3-tick circuit for any small function.
+3. Add the crate to the workspace `Cargo.toml`, to `tools/pareto/Cargo.toml`, and to `generator()` in
+   `tools/pareto/src/main.rs`.
+4. `cargo test --release -p pareto` then checks every design of every family on every input, at every size
+   with 16 input bits or fewer.
 
-Families so far: `adder`, `double-dabble`.
+Families so far: `adder`, `barrel-shifter`, `comparator`, `decoder`, `demultiplexer`, `double-dabble`,
+`multiplexer`, `multiplier`, `seven-segment`, `subtractor`.
