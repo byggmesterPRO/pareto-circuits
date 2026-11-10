@@ -1,113 +1,106 @@
-//! Command line for logic-sim. Every command prints one line of JSON and exits 1 if something is wrong.
-//!
-//!   logic-sim verify <slot>                         a build slot, against its meta.json
-//!   logic-sim verify <netlist.json> <family> <size>
-//!   logic-sim count <slot | netlist.json>           gates and ticks
-//!   logic-sim delay <slot | netlist.json> [jumps]   worst output delay seen over random input changes
-//!   logic-sim validate <slot | blueprint.json>      can it be built in the game
-//!   logic-sim run <slot | blueprint.json> <script>  a test script on the tick simulator
+//! Command line for logic-sim. Every command prints one line of JSON and exits 1 if there is a problem.
 
-use logic_sim::circuit::{load, Circuit};
-use logic_sim::families::family;
-use logic_sim::{check, delay, script, validate};
-use serde_json::{json, Value};
-use std::path::Path;
+use logic_sim::api::handle;
+use serde_json::{json, Map, Value};
+use std::io::{self, BufRead, Write};
 use std::process::exit;
-use std::{env, fs, thread};
+use std::{env, fs};
 
-fn threads() -> usize {
-    thread::available_parallelism().map(|n| n.get()).unwrap_or(1)
+const USAGE: &str = "logic-sim: simulator and verifier for Scrap Mechanic logic circuits
+
+A <circuit> is a build slot folder, a blueprint.json or a netlist.json.
+
+  logic-sim verify <slot>                         check a build slot against its meta.json
+  logic-sim verify <circuit> <family> <size>      check against a known family, for example double-dabble 12bit
+  logic-sim equal <circuit> <reference circuit>   do two circuits give the same outputs for every input
+  logic-sim check <circuit> --table <file.json>   check against a list with one output value per input
+  logic-sim check <circuit> --cases <file.json>   check chosen inputs: [[input, output], ...]
+  logic-sim count <circuit>                       gates and ticks
+  logic-sim delay <circuit> [jumps]               worst output delay seen over random input changes
+  logic-sim validate <circuit>                    can it be built in the game
+  logic-sim run <circuit> <script>                run a test script (set, tick, check) on the tick simulator
+  logic-sim serve                                 stay running: one JSON request per line in, one reply out
+
+  --pins <file.json>     inputs and outputs of a bare blueprint.json:
+                         {\"inputs\": [controller id, ...], \"outputs\": [controller id or null, ...]}
+
+verify, equal, check and delay are for circuits without memory. Circuits with memory, timers or loops are
+tested with run. See README.md for the request format of serve.";
+
+fn read(path: &str) -> Result<Value, String> {
+    let text = fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
+    serde_json::from_str(&text).map_err(|e| format!("{path}: {e}"))
 }
 
-/// Correctness, gates and ticks of a circuit against a family.
-fn verify(c: &Circuit, fam: &str, size: &str) -> Result<Value, String> {
-    let f = family(fam, size)?;
-    let mut problems = vec![];
-    if c.inputs.len() as u32 != f.bits {
-        problems.push(format!("{} inputs, {fam} {size} has {}", c.inputs.len(), f.bits));
+fn request(mut args: Vec<String>) -> Result<Value, String> {
+    let mut req = Map::new();
+    for flag in ["--pins", "--table", "--cases"] {
+        if let Some(i) = args.iter().position(|a| a == flag) {
+            let file = args.get(i + 1).ok_or(format!("{flag} needs a file"))?.clone();
+            req.insert(flag[2..].to_string(), if flag == "--pins" { json!(file) } else { read(&file)? });
+            args.drain(i..i + 2);
+        }
     }
-    if c.outputs.len() as u32 != f.out_bits {
-        problems.push(format!("{} outputs, {fam} {size} has {}", c.outputs.len(), f.out_bits));
-    }
-    if !problems.is_empty() {
-        return Ok(json!({ "problems": problems, "warnings": [] }));
-    }
-    let res = check::check(c, &*f.f, threads())?;
-    let report = validate::validate(c);
-    problems.extend(report.problems);
-    if res.wrong > 0 {
-        problems.push(format!("{} test inputs give a wrong output", res.wrong));
-    }
-    Ok(json!({
-        "gates": c.gates(),
-        "ticks": c.ticks(),
-        "verified": if res.exhaustive { "exhaustive" } else { "sampled" },
-        "tested": res.tested,
-        "wrong": res.wrong,
-        "problems": problems,
-        "warnings": report.warnings,
-    }))
-}
-
-fn run(args: &[String]) -> Result<Value, String> {
-    let cmd = args.first().map(|s| s.as_str()).unwrap_or("");
-    let path = Path::new(args.get(1).ok_or("missing path; see the top of src/main.rs for usage")?);
-    let (c, meta) = load(path)?;
+    let cmd = args.first().ok_or(USAGE)?.as_str();
+    req.insert("circuit".into(), json!(args.get(1).ok_or(format!("{cmd} needs a circuit\n\n{USAGE}"))?));
     match cmd {
         "verify" => {
-            let Some(meta) = meta else {
-                return verify(&c, args.get(2).ok_or("verify <netlist> needs <family> <size>")?, args.get(3).ok_or("verify <netlist> needs <family> <size>")?);
-            };
-            let (fam, size) = (meta["family"].as_str().unwrap_or(""), meta["size"].as_str().unwrap_or(""));
-            let mut res = verify(&c, fam, size)?;
-            let mut problems: Vec<Value> = res["problems"].as_array().cloned().unwrap_or_default();
-            for key in ["gates", "ticks"] {
-                if res.get(key).is_some() && meta[key] != res[key] {
-                    problems.push(json!(format!("meta.json says {key} = {}, logic-sim gets {}", meta[key], res[key])));
-                }
+            if let (Some(f), Some(s)) = (args.get(2), args.get(3)) {
+                req.insert("family".into(), json!(f));
+                req.insert("size".into(), json!(s));
             }
-            if meta["verified"] == "exhaustive" && res.get("verified").is_some_and(|v| v != "exhaustive") {
-                problems.push(json!("meta.json says exhaustive, but this size can only be sampled"));
-            }
-            let full = fs::canonicalize(path).map_err(|e| e.to_string())?;
-            let tail: Vec<String> = full.iter().rev().take(2).map(|p| p.to_string_lossy().into_owned()).collect();
-            if tail.get(1).map(|s| s.as_str()) != Some(size) || tail.first().map(|s| s.as_str()) != meta["profile"].as_str() {
-                problems.push(json!("meta.json size/profile do not match the folder"));
-            }
-            res["problems"] = Value::Array(problems);
-            Ok(res)
         }
-        "count" => Ok(json!({ "gates": c.gates(), "ticks": c.ticks(), "problems": [] })),
+        "equal" => {
+            req.insert("reference".into(), json!(args.get(2).ok_or("equal needs two circuits")?));
+            if let Some(p) = req.get("pins").cloned() {
+                req.insert("reference_pins".into(), p);
+            }
+        }
         "delay" => {
-            if c.inputs.is_empty() {
-                return Err("delay needs pins: give a build slot or a netlist".into());
+            if let Some(j) = args.get(2).and_then(|j| j.parse::<u64>().ok()) {
+                req.insert("jumps".into(), json!(j));
             }
-            let jumps = args.get(2).and_then(|k| k.parse().ok()).unwrap_or(200_000);
-            Ok(json!({ "gates": c.gates(), "ticks": c.ticks(), "worst_delay_seen": delay::worst_seen(&c, jumps, 1)?, "jumps": jumps, "problems": [] }))
-        }
-        "validate" => {
-            let r = validate::validate(&c);
-            Ok(json!({ "gates": c.gates(), "problems": r.problems, "warnings": r.warnings }))
         }
         "run" => {
-            let text = fs::read_to_string(args.get(2).ok_or("run needs a script file")?).map_err(|e| e.to_string())?;
-            let o = script::run(&c, &text)?;
-            Ok(json!({ "correct": o.correct, "total": o.total, "ticks": o.ticks, "problems": o.failed }))
+            req.insert("script_file".into(), json!(args.get(2).ok_or("run needs a script file")?));
         }
-        _ => Err(format!("unknown command \"{cmd}\"; see the top of src/main.rs for usage")),
+        "check" | "count" | "validate" => {}
+        _ => return Err(format!("unknown command \"{cmd}\"\n\n{USAGE}")),
     }
+    req.insert("cmd".into(), json!(if cmd == "equal" { "check" } else { cmd }));
+    Ok(Value::Object(req))
 }
 
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
-    match run(&args) {
-        Ok(v) => {
-            println!("{v}");
-            exit(if v["problems"].as_array().is_some_and(|p| !p.is_empty()) { 1 } else { 0 });
-        }
-        Err(e) => {
-            println!("{}", json!({ "problems": [e] }));
-            exit(1);
-        }
+    if args.is_empty() || args[0] == "help" || args[0] == "--help" || args[0] == "-h" {
+        println!("{USAGE}");
+        return;
     }
+    if args[0] == "serve" {
+        let stdout = io::stdout();
+        for line in io::stdin().lock().lines() {
+            let Ok(line) = line else { break };
+            if line.trim().is_empty() {
+                continue;
+            }
+            let reply = match serde_json::from_str::<Value>(&line) {
+                Ok(req) => handle(&req),
+                Err(e) => json!({ "problems": [format!("not JSON: {e}")] }),
+            };
+            let mut out = stdout.lock();
+            let _ = writeln!(out, "{reply}");
+            let _ = out.flush();
+        }
+        return;
+    }
+    let reply = match request(args) {
+        Ok(req) => handle(&req),
+        Err(e) => {
+            eprintln!("{e}");
+            exit(2);
+        }
+    };
+    println!("{reply}");
+    exit(if reply["problems"].as_array().is_some_and(|p| !p.is_empty()) { 1 } else { 0 });
 }

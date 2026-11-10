@@ -1,6 +1,6 @@
 """Do bygg-logic-sim, niknal-logic-sim and logic-sim agree, and how fast is each.
 
-    cargo build --release --manifest-path tools/logic-sim/Cargo.toml
+    (cd tools/logic-sim && cargo build --release)
     python tools/logic-sim/compare.py
 
 Part 1: the double dabble builds and generator outputs, checked by all three.
@@ -32,9 +32,14 @@ TMP = Path(tempfile.mkdtemp())
 
 
 def logic_sim(*args):
-    t0 = time.perf_counter()
-    out = subprocess.run([str(EXE), *map(str, args)], capture_output=True, text=True).stdout
-    return json.loads(out), time.perf_counter() - t0
+    """The reply, and the quickest of three runs (a first run can be slowed by other things on the machine)."""
+    best = None
+    for _ in range(3):
+        t0 = time.perf_counter()
+        out = subprocess.run([str(EXE), *map(str, args)], capture_output=True, text=True).stdout
+        t = time.perf_counter() - t0
+        best = t if best is None else min(best, t)
+    return json.loads(out), best
 
 
 def niknal_circuit(net):

@@ -7,7 +7,9 @@
 //! - `validate`: can it be built in the game
 //! - `delay`: worst output delay seen over random input changes
 //! - `script`: small test scripts (set, tick, check)
+//! - `api`: every command as a JSON request and reply, for the command line and for `serve`
 
+pub mod api;
 pub mod check;
 pub mod circuit;
 pub mod delay;

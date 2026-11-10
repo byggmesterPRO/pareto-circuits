@@ -202,19 +202,34 @@ pub fn read_json(path: &Path) -> Result<Value, String> {
     serde_json::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))
 }
 
+/// Pins as given by a caller: {"inputs": [..], "outputs": [..]}, a meta.json that holds "pins", or a path to
+/// either.
+pub fn read_pins(v: &Value) -> Result<Value, String> {
+    let v = match v.as_str() {
+        Some(path) => read_json(Path::new(path))?,
+        None => v.clone(),
+    };
+    Ok(v.get("pins").cloned().unwrap_or(v))
+}
+
+/// A circuit from a JSON value: a blueprint ("bodies") or a netlist ("inputs", "gates", "outputs").
+pub fn from_value(v: &Value, pins: Option<&Value>) -> Result<Circuit, String> {
+    if v.get("bodies").is_some() {
+        Circuit::from_blueprint(v, pins)
+    } else {
+        Circuit::from_netlist(v)
+    }
+}
+
 /// A build slot (a folder with blueprint/blueprint.json and meta.json), a blueprint.json or a netlist.json.
-/// Returns the circuit and, for a slot, its meta.json.
-pub fn load(path: &Path) -> Result<(Circuit, Option<Value>), String> {
+/// A slot brings its own pins and meta.json; a bare blueprint needs `pins` for anything that uses inputs and
+/// outputs. Returns the circuit and, for a slot, its meta.json.
+pub fn load(path: &Path, pins: Option<&Value>) -> Result<(Circuit, Option<Value>), String> {
     if path.is_dir() {
         let meta = read_json(&path.join("meta.json"))?;
         let bp = read_json(&path.join("blueprint").join("blueprint.json"))?;
-        let c = Circuit::from_blueprint(&bp, Some(meta.get("pins").ok_or("meta.json has no \"pins\"")?))?;
+        let c = Circuit::from_blueprint(&bp, Some(pins.or(meta.get("pins")).ok_or("meta.json has no \"pins\"")?))?;
         return Ok((c, Some(meta)));
     }
-    let v = read_json(path)?;
-    if v.get("bodies").is_some() {
-        Ok((Circuit::from_blueprint(&v, None)?, None))
-    } else {
-        Ok((Circuit::from_netlist(&v)?, None))
-    }
+    Ok((from_value(&read_json(path)?, pins)?, None))
 }

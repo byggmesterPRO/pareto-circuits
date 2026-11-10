@@ -1,28 +1,71 @@
 # logic-sim
 
-The simulator and verifier in Rust, put together from `bygg-logic-sim` and `niknal-logic-sim`.
+Simulator and verifier for Scrap Mechanic logic, in Rust. Put together from `bygg-logic-sim` and
+`niknal-logic-sim`, and meant for any circuit, from any language.
 
 It is a candidate for the shared verifier, not the judge yet: both of us should look it over first, and the
 tick model still has to be checked against the game.
 
+## Build
+
 ```
-cargo build --release --manifest-path tools/logic-sim/Cargo.toml
-tools/logic-sim/target/release/logic-sim verify circuits/double-dabble/builds/12bit/fast
+cd tools/logic-sim
+cargo build --release
 ```
 
-Every command prints one line of JSON and exits 1 if there is a problem.
+Build from this folder: its `.cargo/config.toml` compiles for the CPU of your machine. The program ends up in
+`tools/logic-sim/target/release/`.
+
+## Commands
+
+A circuit is a build slot folder, a `blueprint.json` or a `netlist.json`. Every command prints one line of
+JSON and exits 1 if there is a problem. `logic-sim help` lists them.
 
 | Command | What it does |
 |---|---|
 | `verify <slot>` | Checks a build slot against its `meta.json`: correct, gates, ticks, buildable |
-| `verify <netlist.json> <family> <size>` | The same for a netlist |
-| `count <slot or netlist>` | Gates and ticks |
-| `delay <slot or netlist> [jumps]` | Worst output delay seen over random input changes |
-| `validate <slot or blueprint.json>` | Can it be built in the game |
-| `run <slot or blueprint.json> <script>` | Runs a test script on the tick simulator |
+| `verify <circuit> <family> <size>` | Checks against a known family, for example `double-dabble 12bit` |
+| `equal <circuit> <reference>` | Do two circuits give the same outputs for every input |
+| `check <circuit> --table <file>` | Checks against a list with one output value per input |
+| `check <circuit> --cases <file>` | Checks chosen inputs: `[[input, output], ...]` |
+| `count <circuit>` | Gates and ticks |
+| `delay <circuit> [jumps]` | Worst output delay seen over random input changes |
+| `validate <circuit>` | Can it be built in the game |
+| `run <circuit> <script>` | Runs a test script on the tick simulator |
+| `serve` | Stays running: one JSON request per line in, one reply per line out |
 
-A test script is one step per line: `set in0 1`, `release in0`, `tick 3`, `settle`, `check out2 0`. A name is
-`in<k>` or `out<k>` for a pin, or `#<controller id>` for any part. `//` starts a comment.
+A bare `blueprint.json` does not say which gates are the inputs and outputs. Give them with
+`--pins <file>`: `{"inputs": [controller id, ...], "outputs": [controller id or null, ...]}`. A build slot has
+them in its `meta.json`, and a netlist has them built in.
+
+## Any circuit
+
+- **Without memory** (adders, decoders, converters): `verify`, `equal` and `check`. You do not need a family
+  in Rust. Hand over the right answers as a table or as cases, or compare against a circuit you trust, such as
+  a generator's output. Up to 32 input bits every input is tried; above that, edge cases plus a million random
+  inputs. With a table or cases, exactly what you give is tried.
+- **With memory, timers or loops** (RAM, counters, clocks): `run` with a test script. One step per line:
+  `set in0 1`, `release in0`, `tick 3`, `settle`, `check out2 0`. A name is `in<k>` or `out<k>` for a pin, or
+  `#<controller id>` for any part. `//` starts a comment.
+
+A family in `src/families.rs` is only needed for `verify` on build slots, and for sizes where a table would be
+too big. Only `double-dabble` is there so far.
+
+## From Python, or any other language
+
+```python
+from logic_sim import LogicSim      # tools/logic-sim/logic_sim.py
+
+sim = LogicSim()
+sim.verify("circuits/double-dabble/builds/12bit/fast")
+sim.check(netlist, table=[f(x) for x in range(1 << bits)])
+sim.check(netlist, reference=other_netlist)
+sim.run(blueprint, "set #3 1\ntick 2\ncheck #7 1")
+```
+
+The client keeps one `logic-sim serve` running, so a call costs no start-up, and circuits can be sent as
+dicts without writing files. Any language that can start a program and read and write lines can do the same.
+The request format is at the top of `src/api.rs`.
 
 ## What came from where
 
@@ -40,7 +83,7 @@ A test script is one step per line: `set in0 1`, `release in0`, `tick 3`, `settl
 | Worst delay actually seen | bygg | |
 
 New here: the tick simulator itself runs many copies of the circuit at once, so the bit-parallel trick also
-works for circuits with memory and timers. In both Python simulators it was one input at a time.
+works for circuits with memory and timers. Checking against a table, cases or another circuit is new too.
 
 ## Do the three agree
 
@@ -50,24 +93,29 @@ works for circuits with memory and timers. In both Python simulators it was one 
 - 30 random circuits with feedback loops, self-wired gates and timers, 200 ticks each with random inputs:
   the same state for every part on every tick
 
-`cargo test` covers a half adder, a NOR latch, a timer, independent lanes and the double dabble function.
+`cargo test` has 12 tests: a half adder, a NOR latch, a timer, independent lanes, tables, cases, circuit
+against circuit, parts in any order, more than 64 output bits, and the double dabble reference.
 
 ## Speed
 
-Measured on one machine with 20 threads. logic-sim's times are whole program runs, of which about 0.03 s is
-starting up and reading the file. The Python times are the checking step alone, inside a Python that is already
-running; as a whole program the bygg verifier takes 0.35 s on the first row.
+Measured on one machine with 20 threads, on the double dabble generator's circuits, trying every input.
+Times are whole program runs.
 
-| Check | bygg | niknal | logic-sim |
-|---|---|---|---|
-| 12bit fast build, every input | 0.05 s | 0.65 s | 0.03 s |
-| generator 16bit, every input | 5.5 s | 8.5 s for 2000 of the 65536 inputs | 0.05 s |
-| generator 24bit, every input | | | 0.45 s |
-| generator 28bit, every input | | | 2.9 s |
-| generator 32bit, all 4.3 billion inputs | | | 50 s |
+| Size | Inputs tried | Gates | logic-sim | bygg (Python) |
+|---|---|---|---|---|
+| 12bit | 4096 | 135 | 0.02 s | 0.35 s |
+| 16bit | 65 536 | 244 | 0.02 s | 5.5 s |
+| 24bit | 16.8 million | 572 | 0.07 s | |
+| 28bit | 268 million | 785 | 0.66 s | |
+| 32bit | 4.3 billion | 1033 | 15 s | |
 
-So logic-sim tries every input up to 32 bits, where the Python verifier stops at 20 and samples above that.
-Above 32 bits it tests edge cases plus a million random inputs.
+About 0.015 s of each run is starting the program and reading the file. Through `serve` that is gone: one
+check of the 12bit circuit takes 0.9 ms, against 57 ms for the Python verifier inside a running Python.
+
+What made the difference, measured on the 28bit run: writing each gate's result straight into place and
+keeping a block of test inputs small enough for the CPU cache took it from 2.9 s to 0.75 s, and counting the
+reference in decimal instead of dividing for every input took it to 0.66 s. Building for the newest CPU
+instructions made no measurable difference.
 
 ## Open points
 
@@ -79,5 +127,6 @@ Above 32 bits it tests edge cases plus a million random inputs.
   `bygg-logic-sim/netlist.py` has to change and the builds get a new version.
 - Self-wired and cross-wired parts are reported as warnings, since some builds want them (memory cells).
 - A timer is counted as one block when checking overlaps and touching; in the game it takes two.
-- Only `double-dabble` is known as a family so far (`src/families.rs`).
-- The optimizers still use the Python verifier inside their search loops. There are no Python bindings yet.
+- Test scripts run one copy of the circuit. Checking a memory circuit on many inputs at once needs the
+  library (`sim.rs`), not the command line.
+- The optimizers in `optimizers/fable` do not use it yet.
