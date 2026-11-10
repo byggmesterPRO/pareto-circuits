@@ -46,12 +46,43 @@ impl Family {
     }
 }
 
-pub const FAMILIES: [&str; 10] =
-    ["adder", "barrel-shifter", "comparator", "decoder", "demultiplexer", "double-dabble", "multiplexer", "multiplier", "seven-segment", "subtractor"];
+pub const FAMILIES: [&str; 19] = [
+    "absolute",
+    "adder",
+    "adder-subtractor",
+    "alu",
+    "barrel-shifter",
+    "comparator",
+    "decoder",
+    "decrementer",
+    "demultiplexer",
+    "divider",
+    "double-dabble",
+    "incrementer",
+    "multiplexer",
+    "multiplier",
+    "negate",
+    "seven-segment",
+    "square",
+    "square-root",
+    "subtractor",
+];
 
 pub fn family(name: &str, size: &str) -> Result<Family, String> {
     match name {
+        "absolute" => one_number("absolute", size, 0, |x, n| if x >> (n - 1) & 1 == 1 { x.wrapping_neg() & mask(n) } else { x }),
         "adder" => adder(size),
+        "adder-subtractor" => adder_subtractor(size),
+        "alu" => alu(size),
+        "decrementer" => one_number("decrementer", size, 1, |x, n| (x.wrapping_sub(1) & mask(n)) | ((x == 0) as u128) << n),
+        "divider" => divider(size),
+        "incrementer" => one_number("incrementer", size, 1, |x, _| x + 1),
+        "negate" => one_number("negate", size, 0, |x, n| x.wrapping_neg() & mask(n)),
+        "square" => one_number("square", size, 0, |x, _| x * x).map(|mut f| {
+            f.out_bits = 2 * f.bits;
+            f
+        }),
+        "square-root" => square_root(size),
         "barrel-shifter" => barrel_shifter(size),
         "comparator" => comparator(size),
         "decoder" => decoder(size),
@@ -372,4 +403,119 @@ fn seven_segment(size: &str) -> Result<Family, String> {
     }
     const GLYPHS: [u8; 16] = [0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F, 0x77, 0x7C, 0x39, 0x5E, 0x79, 0x71];
     Ok(Family::new(4, 7, |x| GLYPHS[(x & 15) as usize] as u128, vec![]))
+}
+
+/// Numbers where something walks a long way through the bits: k ones at the bottom and then a zero, k zeros
+/// and then a one, with anything above.
+fn runs(n: u32, seed: u64) -> Vec<u128> {
+    let m = mask(n);
+    let mut r = Random(seed);
+    let mut out = vec![];
+    for k in 0..=n {
+        let low = mask(k);
+        for _ in 0..40 {
+            let above = if k + 1 >= n { 0 } else { (r.word() << (k + 1)) & m };
+            out.extend([low & m, above | low, above, (above | 1u128 << k.min(n - 1)) & m, m & !low]);
+        }
+    }
+    out
+}
+
+/// A family with one n-bit number in. `extra` is how many output bits there are beyond n.
+fn one_number(name: &str, size: &str, extra: u32, f: fn(u128, u32) -> u128) -> Result<Family, String> {
+    let n = bits_of(name, size, 64)?;
+    Ok(Family::new(n, n + extra, move |x| f(x, n), runs(n, 0x1234_5678_9ABC_DEF1)))
+}
+
+/// a + b, or a - b when the mode is on. Inputs: a is bits 0 .. n-1, b is bits n .. 2n-1, the mode is bit 2n
+/// (off adds, on subtracts). Outputs: the result in bits 0 .. n-1, and in bit n the carry out of an addition
+/// or the borrow of a subtraction (on when a < b).
+fn adder_subtractor(size: &str) -> Result<Family, String> {
+    let n = bits_of("adder-subtractor", size, 63)?;
+    let m = mask(n);
+    let mut hard = adder(size)?.hard;
+    hard.extend(subtractor(size)?.hard.iter().map(|h| h | 1u128 << (2 * n)));
+    Ok(Family::new(2 * n + 1, n + 1, move |x| {
+        let (a, b) = (x & m, x >> n & m);
+        if x >> (2 * n) & 1 == 0 { a + b } else { (a.wrapping_sub(b) & m) | ((a < b) as u128) << n }
+    }, hard))
+}
+
+/// A small arithmetic and logic unit. Inputs: a is bits 0 .. n-1, b is bits n .. 2n-1, the operation is the 3
+/// bits above. Outputs: the result in bits 0 .. n-1 and a flag in bit n.
+///
+/// 0 a + b (flag: carry), 1 a - b (flag: borrow), 2 a and b, 3 a or b, 4 a xor b, 5 a shifted up one place
+/// (flag: the bit that fell off the top), 6 a shifted down one place (flag: the bit that fell off the bottom),
+/// 7 not a. The flag is off where none is named.
+fn alu(size: &str) -> Result<Family, String> {
+    let n = bits_of("alu", size, 62)?;
+    let m = mask(n);
+    let mut hard = adder(size)?.hard;
+    hard.extend(subtractor(size)?.hard.iter().map(|h| h | 1u128 << (2 * n)));
+    let mut r = Random(0xC0FFEE1234567);
+    for op in 0..8u128 {
+        for _ in 0..2000 {
+            hard.push((r.word() & m) | (r.word() & m) << n | op << (2 * n));
+        }
+    }
+    Ok(Family::new(2 * n + 3, n + 1, move |x| {
+        let (a, b) = (x & m, x >> n & m);
+        match x >> (2 * n) & 7 {
+            0 => a + b,
+            1 => (a.wrapping_sub(b) & m) | ((a < b) as u128) << n,
+            2 => a & b,
+            3 => a | b,
+            4 => a ^ b,
+            5 => a << 1,
+            6 => a >> 1 | (a & 1) << n,
+            _ => !a & m,
+        }
+    }, hard))
+}
+
+/// a divided by b. Inputs: a is bits 0 .. n-1, b is bits n .. 2n-1. Outputs: the quotient in bits 0 .. n-1 and
+/// the remainder in bits n .. 2n-1. Dividing by 0 gives a quotient of all ones and a as the remainder.
+fn divider(size: &str) -> Result<Family, String> {
+    let n = bits_of("divider", size, 64)?;
+    let m = mask(n);
+    let mut hard = vec![];
+    let mut r = Random(0xD1D1D1D1D1D1D1);
+    for i in 0..20_000u32 {
+        // a divisor of every length, and a just below, at and just above a multiple of it
+        let b = (r.word() & m) >> (i % n);
+        let q = if b == 0 { 0 } else { (r.word() & m) / b };
+        for a in [q * b, (q * b).wrapping_sub(1) & m, (q * b + b.saturating_sub(1)) & m, r.word() & m] {
+            hard.push(a | b << n);
+        }
+    }
+    Ok(Family::new(2 * n, 2 * n, move |x| {
+        let (a, b) = (x & m, x >> n & m);
+        if b == 0 { m | a << n } else { a / b | (a % b) << n }
+    }, hard))
+}
+
+/// The square root of an n-bit number, rounded down. n is even; the root has n / 2 bits.
+fn square_root(size: &str) -> Result<Family, String> {
+    let n = bits_of("square-root", size, 64)?;
+    if n % 2 == 1 {
+        return Err(format!("square-root: size \"{size}\" has to be an even number of bits"));
+    }
+    let m = mask(n);
+    let root = |x: u128| {
+        let mut r = (x as f64).sqrt() as u128;
+        while r * r > x {
+            r -= 1;
+        }
+        while (r + 1) * (r + 1) <= x {
+            r += 1;
+        }
+        r
+    };
+    let mut hard = vec![];
+    let mut r = Random(0x5152_5354_5556_5758);
+    for i in 0..30_000u32 {
+        let v = (r.word() & mask(n / 2)) >> (i % (n / 2));
+        hard.extend([v * v, (v * v).wrapping_sub(1) & m, (v * v + 2 * v) & m]);
+    }
+    Ok(Family::new(n, n / 2, root, hard))
 }

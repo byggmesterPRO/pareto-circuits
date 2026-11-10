@@ -1,0 +1,8 @@
+[package]
+name = "square-generator"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+logic-sim = { path = "../../../tools/logic-sim" }
+multiplier-generator = { path = "../../multiplier/generator" }

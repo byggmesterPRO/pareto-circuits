@@ -116,6 +116,14 @@ impl Builder {
         self.gates[g as usize - self.inputs].1 = ins;
     }
 
+    /// A gate that only copies its input, so that an output has a gate of its own. A constant stays a constant.
+    pub fn buffer(&mut self, x: S) -> S {
+        match x {
+            S::Wire(w) => self.raw(OR, vec![w]),
+            constant => constant,
+        }
+    }
+
     pub fn and(&mut self, xs: &[S]) -> S {
         self.gate(AND, xs)
     }

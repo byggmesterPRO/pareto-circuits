@@ -36,10 +36,10 @@ pub fn designs(n: usize) -> Result<Vec<Design>, String> {
 /// A bit in a column: the signal, the tick it is ready at, and for a product straight off the grid the two
 /// input bits it is the AND of.
 #[derive(Clone)]
-struct Bit {
-    s: S,
-    at: u32,
-    of: Option<[S; 2]>,
+pub struct Bit {
+    pub s: S,
+    pub at: u32,
+    pub of: Option<[S; 2]>,
 }
 
 /// The XOR of the AND of every group of `size` of these bits. For the bits of a column this is one bit of
@@ -153,6 +153,12 @@ fn build(n: usize, most: usize, last: Option<Carry>) -> Result<Netlist, String> 
             cols[i + j].push(Bit { s: b.and(&[x[i], y[j]]), at: 2, of: Some([x[i], y[j]]) });
         }
     }
+    sum_columns(b, cols, most, last)
+}
+
+/// Add up columns of bits, where column c is worth 2^c: one output bit per column. `most` is the largest
+/// counter (3 or 7), `last` is how the final two rows are added; None is `walk`. The square uses this too.
+pub fn sum_columns(mut b: Builder, mut cols: Vec<Vec<Bit>>, most: usize, last: Option<Carry>) -> Result<Netlist, String> {
     let bit = |c: &Vec<Bit>, k: usize| c.get(k).map_or(S::Zero, |x| x.s);
     let Some(carry) = last else {
         walk(&mut b, &mut cols);
@@ -163,7 +169,7 @@ fn build(n: usize, most: usize, last: Option<Carry>) -> Result<Netlist, String> 
     let pass: Vec<S> = cols.iter().map(|c| b.xor(&[bit(c, 0), bit(c, 1)])).collect();
     let starts: Vec<Vec<S>> = cols.iter().map(|c| vec![bit(c, 0), bit(c, 1)]).collect();
     let terms = carries(&mut b, &starts, &pass, carry);
-    let outs: Vec<S> = (0..2 * n)
+    let outs: Vec<S> = (0..cols.len())
         .map(|c| {
             let mut xs = terms[c].clone();
             xs.push(pass[c]);

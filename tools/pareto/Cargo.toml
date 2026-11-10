@@ -5,17 +5,26 @@ edition = "2024"
 
 [dependencies]
 logic-sim = { path = "../logic-sim" }
+absolute-generator = { path = "../../circuits/absolute/generator" }
 adder-generator = { path = "../../circuits/adder/generator" }
+adder-subtractor-generator = { path = "../../circuits/adder-subtractor/generator" }
+alu-generator = { path = "../../circuits/alu/generator" }
 barrel-shifter-generator = { path = "../../circuits/barrel-shifter/generator" }
 comparator-generator = { path = "../../circuits/comparator/generator" }
 counter-generator = { path = "../../circuits/counter/generator" }
 decoder-generator = { path = "../../circuits/decoder/generator" }
+decrementer-generator = { path = "../../circuits/decrementer/generator" }
 demultiplexer-generator = { path = "../../circuits/demultiplexer/generator" }
+divider-generator = { path = "../../circuits/divider/generator" }
 double-dabble-generator = { path = "../../circuits/double-dabble/generator" }
+incrementer-generator = { path = "../../circuits/incrementer/generator" }
 multiplexer-generator = { path = "../../circuits/multiplexer/generator" }
 multiplier-generator = { path = "../../circuits/multiplier/generator" }
+negate-generator = { path = "../../circuits/negate/generator" }
 ram-generator = { path = "../../circuits/ram/generator" }
 register-generator = { path = "../../circuits/register/generator" }
 seven-segment-generator = { path = "../../circuits/seven-segment/generator" }
+square-generator = { path = "../../circuits/square/generator" }
+square-root-generator = { path = "../../circuits/square-root/generator" }
 subtractor-generator = { path = "../../circuits/subtractor/generator" }
 serde_json = "1"

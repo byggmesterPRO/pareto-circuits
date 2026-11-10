@@ -46,5 +46,6 @@ A family with memory is a `Machine` in `families.rs` instead: which inputs are o
 that says what the outputs should be after an operation. Its generator makes loops with `Builder::later` and
 `Builder::wire`. It is checked on the tick simulator with random operations, and its ticks are measured there.
 
-Families so far: `adder`, `barrel-shifter`, `comparator`, `counter`, `decoder`, `demultiplexer`,
-`double-dabble`, `multiplexer`, `multiplier`, `ram`, `register`, `seven-segment`, `subtractor`.
+Families so far: `absolute`, `adder`, `adder-subtractor`, `alu`, `barrel-shifter`, `comparator`, `counter`, `decoder`,
+`decrementer`, `demultiplexer`, `divider`, `double-dabble`, `incrementer`, `multiplexer`, `multiplier`,
+`negate`, `ram`, `register`, `seven-segment`, `square`, `square-root`, `subtractor`.

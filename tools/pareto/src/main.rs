@@ -34,18 +34,27 @@ type Designs = Box<dyn Fn(&str) -> Result<Vec<Design>, String>>;
 /// A family's generator: the sizes it has build slots for, and its designs for a size.
 fn generator(fam: &str) -> Result<(Vec<String>, Designs), String> {
     Ok(match fam {
+        "absolute" => (absolute_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| absolute_generator::designs(bits_of(size)?))),
         "adder" => (adder_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| adder_generator::designs(bits_of(size)?))),
+        "adder-subtractor" => (adder_subtractor_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| adder_subtractor_generator::designs(bits_of(size)?))),
+        "alu" => (alu_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| alu_generator::designs(bits_of(size)?))),
         "barrel-shifter" => (barrel_shifter_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| barrel_shifter_generator::designs(bits_of(size)?))),
         "comparator" => (comparator_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| comparator_generator::designs(bits_of(size)?))),
         "counter" => (counter_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| counter_generator::designs(bits_of(size)?))),
         "decoder" => (decoder_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| decoder_generator::designs(bits_of(size)?))),
+        "decrementer" => (decrementer_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| decrementer_generator::designs(bits_of(size)?))),
         "demultiplexer" => (demultiplexer_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| demultiplexer_generator::designs(bits_of(size)?))),
+        "divider" => (divider_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| divider_generator::designs(bits_of(size)?))),
         "double-dabble" => (double_dabble_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| double_dabble_generator::designs(bits_of(size)?))),
+        "incrementer" => (incrementer_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| incrementer_generator::designs(bits_of(size)?))),
         "multiplexer" => (multiplexer_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| multiplexer_generator::designs(bits_of(size)?))),
         "multiplier" => (multiplier_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| multiplier_generator::designs(bits_of(size)?))),
+        "negate" => (negate_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| negate_generator::designs(bits_of(size)?))),
         "ram" => (ram_generator::SIZES.iter().map(|s| s.to_string()).collect(), Box::new(ram_generator::designs)),
         "register" => (register_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| register_generator::designs(bits_of(size)?))),
         "seven-segment" => (seven_segment_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| seven_segment_generator::designs(bits_of(size)?))),
+        "square" => (square_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| square_generator::designs(bits_of(size)?))),
+        "square-root" => (square_root_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| square_root_generator::designs(bits_of(size)?))),
         "subtractor" => (subtractor_generator::SIZES.iter().map(|b| format!("{b}bit")).collect(), Box::new(|size: &str| subtractor_generator::designs(bits_of(size)?))),
         _ => return Err(format!("no generator for \"{fam}\"; there are generators for: {}, {}", FAMILIES.join(", "), MACHINES.join(", "))),
     })

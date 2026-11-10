@@ -146,3 +146,79 @@ pub fn normal_form(bits: usize, out_bits: usize, f: &dyn Fn(u128) -> u128) -> Re
     }
     b.finish(&outs)
 }
+
+/// a + b, or a - b when `mode` is on: n result bits and a flag, which is the carry out of an addition and the
+/// borrow of a subtraction (on when a < b). Subtracting is adding the inverse of b plus one, so b goes through
+/// one XOR gate per bit with the mode, and the mode is the carry into the lowest bit.
+/// `carry` picks the carry network; None is a full adder per bit with the carry walking up.
+pub fn add_sub(b: &mut Builder, x: &[S], y: &[S], mode: S, carry: Option<Carry>) -> Vec<S> {
+    let n = x.len();
+    let flipped: Vec<S> = y.iter().map(|&v| b.xor(&[v, mode])).collect();
+    let mut outs = vec![];
+    let Some(carry) = carry else {
+        let mut c = mode;
+        for i in 0..n {
+            let (sum, next) = full_adder(b, x[i], flipped[i], c);
+            outs.push(sum);
+            c = next;
+        }
+        outs.push(b.xor(&[c, mode]));
+        return outs;
+    };
+    // the carry in is a bit below bit 0 that starts a carry when the mode is on
+    let mut pass = vec![S::Zero];
+    let mut starts = vec![vec![mode]];
+    for i in 0..n {
+        pass.push(b.xor(&[x[i], y[i], mode]));
+        starts.push(vec![x[i], flipped[i]]);
+    }
+    let terms = carries(b, &starts, &pass, carry);
+    for i in 0..n {
+        let mut xs = terms[i + 1].clone();
+        xs.push(pass[i + 1]);
+        outs.push(b.xor(&xs));
+    }
+    let mut xs = terms[n + 1].clone();
+    xs.push(mode);
+    outs.push(b.xor(&xs));
+    outs
+}
+
+/// One row of a divider or a square root: if r is at least t, and nothing in `high` is on, take t from r.
+/// Gives "did subtract" and the new r. r and t are least significant bit first; the shorter is padded with
+/// zeros. Per bit: the borrow, one gate for "this bit changes if we subtract" (t xor borrow), one AND with
+/// "did subtract", and one XOR onto r.
+pub fn subtract_if(b: &mut Builder, r: &[S], t: &[S], high: &[S], carry: Option<Carry>) -> (S, Vec<S>) {
+    let w = r.len().max(t.len());
+    let at = |v: &[S], j: usize| v.get(j).copied().unwrap_or(S::Zero);
+    let borrows: Vec<Vec<S>> = match carry {
+        None => {
+            // the borrow walks up, 3 gates per bit (the fewest, by exact search)
+            let mut out = vec![vec![S::Zero]];
+            for j in 0..w {
+                let ins = [at(r, j), at(t, j), out[j][0]];
+                let (not_all, any) = (b.nand(&ins), b.or(&ins));
+                out.push(vec![b.xnor(&[ins[0], not_all, any])]);
+            }
+            out
+        }
+        Some(carry) => {
+            let same: Vec<S> = (0..w).map(|j| b.xnor(&[at(r, j), at(t, j)])).collect();
+            let starts: Vec<Vec<S>> = (0..w).map(|j| vec![b.not(at(r, j)), at(t, j)]).collect();
+            carries(b, &starts, &same, carry)
+        }
+    };
+    let mut blocked = borrows[w].clone();
+    blocked.extend_from_slice(high);
+    let did = b.nor(&blocked);
+    let next = (0..w)
+        .map(|j| {
+            let mut xs = borrows[j].clone();
+            xs.push(at(t, j));
+            let changes = b.xor(&xs);
+            let flip = b.and(&[did, changes]);
+            b.xor(&[at(r, j), flip])
+        })
+        .collect();
+    (did, next)
+}

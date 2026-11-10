@@ -3,7 +3,28 @@
 version = 4
 
 [[package]]
+name = "absolute-generator"
+version = "0.1.0"
+dependencies = [
+ "logic-sim",
+]
+
+[[package]]
 name = "adder-generator"
+version = "0.1.0"
+dependencies = [
+ "logic-sim",
+]
+
+[[package]]
+name = "adder-subtractor-generator"
+version = "0.1.0"
+dependencies = [
+ "logic-sim",
+]
+
+[[package]]
+name = "alu-generator"
 version = "0.1.0"
 dependencies = [
  "logic-sim",
@@ -38,6 +59,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "decrementer-generator"
+version = "0.1.0"
+dependencies = [
+ "logic-sim",
+]
+
+[[package]]
 name = "demultiplexer-generator"
 version = "0.1.0"
 dependencies = [
@@ -45,7 +73,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "divider-generator"
+version = "0.1.0"
+dependencies = [
+ "logic-sim",
+]
+
+[[package]]
 name = "double-dabble-generator"
+version = "0.1.0"
+dependencies = [
+ "logic-sim",
+]
+
+[[package]]
+name = "incrementer-generator"
 version = "0.1.0"
 dependencies = [
  "logic-sim",
@@ -85,23 +127,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "negate-generator"
+version = "0.1.0"
+dependencies = [
+ "logic-sim",
+]
+
+[[package]]
 name = "pareto"
 version = "0.1.0"
 dependencies = [
+ "absolute-generator",
  "adder-generator",
+ "adder-subtractor-generator",
+ "alu-generator",
  "barrel-shifter-generator",
  "comparator-generator",
  "counter-generator",
  "decoder-generator",
+ "decrementer-generator",
  "demultiplexer-generator",
+ "divider-generator",
  "double-dabble-generator",
+ "incrementer-generator",
  "logic-sim",
  "multiplexer-generator",
  "multiplier-generator",
+ "negate-generator",
  "ram-generator",
  "register-generator",
  "serde_json",
  "seven-segment-generator",
+ "square-generator",
+ "square-root-generator",
  "subtractor-generator",
 ]
 
@@ -181,6 +239,21 @@ dependencies = [
 
 [[package]]
 name = "seven-segment-generator"
+version = "0.1.0"
+dependencies = [
+ "logic-sim",
+]
+
+[[package]]
+name = "square-generator"
+version = "0.1.0"
+dependencies = [
+ "logic-sim",
+ "multiplier-generator",
+]
+
+[[package]]
+name = "square-root-generator"
 version = "0.1.0"
 dependencies = [
  "logic-sim",
