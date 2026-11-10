@@ -25,6 +25,9 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 | 16bit | fast | v1.0 | 1254 | 11 | wide-blocks-16 | exhaustive | |
 | 16bit | small | v1.0 | 586 | 56 | ripple | exhaustive | |
 | 16bit | balanced | v1.0 | 697 | 14 | tree-two-level-8 | exhaustive | |
+| 32bit | fast | v1.0 | 7845 | 13 | wide-lookahead | exhaustive | |
+| 32bit | small | v1.0 | 2450 | 120 | ripple | exhaustive | |
+| 32bit | balanced | v1.0 | 2821 | 18 | tree-two-level-8 | exhaustive | |
 
 Gates include the input gates. Every input was tried at every size (4.3 billion at 32 bit). None has been tested in the game yet.
 
