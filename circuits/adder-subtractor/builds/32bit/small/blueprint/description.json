@@ -1,0 +1,7 @@
+{
+  "description": "v1.0 | 226 gates | 67 ticks\nhttps://github.com/byggmesterPRO/pareto-circuits\n\nAdds two 32-bit numbers, or subtracts them when the mode pin is on.\n\nUse this where a creation needs both addition and subtraction, such as a simple calculator.\n\nFeed it two binary numbers, lowest bit first, and a mode input. With the mode off, the numbers are added and the carry output shows the carry out of the addition. With the mode on, the second number is taken away from the first, and the same output shows the borrow, which is on when the first number is smaller.\n\nInputs (yellow gates, first row, lowest bit first): a = x 0-31, b = x 32-63, mode = x 64 (on subtracts).\nOutputs (green gates): result = x 0-31, carry or borrow = x 32.\n\nProfile: small, the build with the fewest gates for this size.\nHow it works: One small cell per bit; the carry walks from bit to bit.\nChecked on about a million inputs in a simulator. Gates include the input gates; ticks count the input gate too.\n\nOther sizes, the generator and the full explanation:\nhttps://github.com/byggmesterPRO/pareto-circuits/tree/main/circuits/adder-subtractor",
+  "localId": "59c7ed46-0121-4155-aa2f-1639f77bd513",
+  "name": "Pareto Adder Subtractor 32bit Small",
+  "type": "Blueprint",
+  "version": 0
+}
