@@ -18,7 +18,7 @@ cd tools/niknal-logic-sim
 PYTHONPATH=. python3 example.py   # half adder, all four input combinations
 ```
 
-Python 3.10 or newer. You can also install it with `pip install -e tools/niknal-logic-sim` and then `import circuitlib`.
+Python 3.10 or newer.
 
 ## Known gaps
 
