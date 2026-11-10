@@ -1,0 +1,30 @@
+{
+  "authors": [
+    "byggmesterPRO"
+  ],
+  "date": "2026-11-10",
+  "family": "multiplexer",
+  "gates": 15,
+  "notes": "Generator design: no-inverters.",
+  "optimal": "best-known",
+  "pins": {
+    "inputs": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "outputs": [
+      14
+    ]
+  },
+  "profile": "fast",
+  "size": "4bit",
+  "source": "generator",
+  "ticks": 3,
+  "verified": "exhaustive",
+  "version": "1.0",
+  "workshop": ""
+}
