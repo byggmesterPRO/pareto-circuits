@@ -1,0 +1,34 @@
+{
+  "authors": [
+    "byggmesterPRO"
+  ],
+  "date": "2026-11-10",
+  "family": "seven-segment",
+  "gates": 22,
+  "notes": "Generator design: normal-form.",
+  "optimal": "best-known",
+  "pins": {
+    "inputs": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "outputs": [
+      10,
+      13,
+      16,
+      18,
+      19,
+      20,
+      21
+    ]
+  },
+  "profile": "fast",
+  "size": "4bit",
+  "source": "generator",
+  "ticks": 3,
+  "verified": "exhaustive",
+  "version": "1.0",
+  "workshop": ""
+}
