@@ -1,0 +1,33 @@
+{
+  "authors": [
+    "byggmesterPRO"
+  ],
+  "date": "2026-11-10",
+  "family": "alu",
+  "gates": 54,
+  "notes": "Generator design: lookahead.",
+  "optimal": "best-known",
+  "pins": {
+    "inputs": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "outputs": [
+      39,
+      49,
+      53
+    ]
+  },
+  "profile": "fast",
+  "size": "2bit",
+  "source": "generator",
+  "ticks": 7,
+  "verified": "exhaustive",
+  "version": "1.0",
+  "workshop": ""
+}
