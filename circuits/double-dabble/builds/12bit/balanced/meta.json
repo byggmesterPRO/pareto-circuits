@@ -1,0 +1,51 @@
+{
+  "family": "double-dabble",
+  "size": "12bit",
+  "profile": "balanced",
+  "version": "1.0",
+  "gates": 327,
+  "ticks": 4,
+  "source": "search",
+  "verified": "exhaustive",
+  "optimal": "best-known",
+  "authors": [
+    "byggmesterPRO"
+  ],
+  "date": "2026-11-10",
+  "workshop": "",
+  "notes": "Same circuit as the fast build: it also has the lowest gates x ticks found so far.",
+  "pins": {
+    "inputs": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "outputs": [
+      312,
+      313,
+      314,
+      315,
+      316,
+      317,
+      318,
+      319,
+      320,
+      321,
+      322,
+      323,
+      324,
+      325,
+      326,
+      null
+    ]
+  }
+}
