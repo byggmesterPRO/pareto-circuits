@@ -8,6 +8,8 @@ target/release/pareto designs adder 16bit           # every design for this size
 target/release/pareto netlist adder 16bit lookahead out.json
 target/release/pareto build adder 16bit             # which design wins fast, small and balanced
 target/release/pareto build-all adder --write --authors yourname
+target/release/pareto frontier adder 64bit          # the designs nothing beats on both gates and ticks
+target/release/pareto pick adder 13bit --balanced --max-ticks 8 --out my-adder
 ```
 
 Run it from inside the repo.
@@ -29,6 +31,48 @@ A one-off search result that sits in a slot stays there until a design beats it.
 `build-all` does every size the family has slots for. Each generator lists its own in `SIZES`: mostly 2, 4,
 8, 16, 32 and 64 bit.
 
+## The frontier, and picking one design
+
+The three profiles are three points. The frontier is all of them: every design that no other design beats on
+both gates and ticks. `pareto frontier <family> <size>` lists it, fastest first, and each one after is slower
+and smaller. Whatever is wanted, the answer is on it.
+
+`pareto pick <family> <size>` gives the one design that fits a wish, at any size, not only the sizes with
+slots:
+
+| Wish | Meaning |
+|---|---|
+| `--max-ticks n` | at most this slow |
+| `--max-gates n` | at most this big |
+| `--balanced` | every path the same number of ticks, so the inputs can change every tick |
+| `--max-period n` | new inputs, or operations, at least this often: every n ticks |
+| `--max-read n` | with memory: at most this long from an input to the outputs |
+| `--max-write n` | with memory: at most this long from a pulse to the outputs |
+| `--max-setup n` | with memory: the inputs steady at most this long before a pulse |
+| `--fastest` | the fastest that fits; without it, the smallest |
+| `--out <folder>` | write it: `blueprint.json` and `description.json` (the folder can go into the game's Blueprints folder), `netlist.json`, `pins.json` |
+
+If nothing fits it says so, and what the fastest and the smallest known are.
+
+Balanced here is the game's meaning, not the profile's (see `tools/logic-sim/README.md`). Every design
+without memory is also measured in its balanced form: timers are added until every path is the design's
+`ticks`, and the result is checked to be the same gates, to have equal paths, and to give the right outputs
+on inputs that change every tick. A timer counts as one part, so the size of a balanced design is its gates
+plus its timers. `designs` shows that size in the `balanced` column, and `frontier` prints a second frontier
+for it. The two frontiers are not the same designs: one that is small as it is can need many timers.
+
+Two designs with the same gates and ticks are told apart by that balanced size: the one that needs fewer
+parts balanced wins, in the profiles too.
+
+A family with memory has more delays than one, so its frontier has more axes: read, write, setup, period and
+gates (`tools/logic-sim/README.md` says what each is). A design is on it unless another is at least as good
+on all five. `frontier` prints them all, and `pick` takes a wish for each. `--balanced` is not for these;
+`--max-period` is the question that takes its place. The `ticks` in a build's `meta.json` stays the one
+number the family README names.
+
+Best means best of what the generators offer. Nothing here proves that no smaller circuit exists, and the
+timer count of a balanced design is a search result too.
+
 ## Adding a family
 
 1. Say what it computes: add it to `tools/logic-sim/src/families.rs` (inputs and outputs as numbers, the
@@ -41,6 +85,9 @@ A one-off search result that sits in a slot stays there until a design beats it.
    `tools/pareto/src/main.rs`.
 4. `cargo test --release -p pareto` then checks every design of every family on every input, at every size
    with 16 input bits or fewer.
+
+Nothing in `pareto` asks for a family by name whether it has memory. A design is handed to
+`logic_sim::verify` with the family's spec, and comes back measured either way.
 
 A family with memory is a `Machine` in `families.rs` instead: which inputs are one-tick pulses, and a model
 that says what the outputs should be after an operation. Its generator makes loops with `Builder::later` and

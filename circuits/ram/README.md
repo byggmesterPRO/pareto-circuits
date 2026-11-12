@@ -29,6 +29,16 @@ The gates wired to themselves start out off, so the memory starts at 0.
 
 Keep the address and data steady until 2 ticks after the pulse.
 
+Reads and writes can follow each other without a gap, each taking this many ticks: the address and data
+change at the start, the write pulse (if it is a write) comes some ticks later, and the word at the address
+is on the outputs when the ticks are over.
+
+| Size | Ticks per operation | Write pulse after the address and data |
+|---|---|---|
+| 16x4bit, 16x8bit | 9 | 4 |
+| 64x8bit | 9 | 3 |
+| 256x8bit | 11 | 4 |
+
 A tick is counted from the moment an input is driven, so the input gate itself is the first tick.
 
 ## Records

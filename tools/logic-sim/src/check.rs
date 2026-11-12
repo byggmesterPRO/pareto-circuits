@@ -97,16 +97,17 @@ pub fn transpose64(a: &mut [u64; 64]) {
 
 /// A circuit without memory laid out for evaluation: slot i < inputs is input bit i, then one slot per gate
 /// in an order where every gate comes after what it reads. A gate can then write straight into its slot.
-struct Flat {
-    inputs: usize,
+/// This is what the outputs settle on, so a timer is a gate that passes its input on.
+pub(crate) struct Flat {
+    pub(crate) inputs: usize,
     gates: Vec<(u8, Vec<u32>)>,
-    outputs: Vec<Option<u32>>,
+    pub(crate) outputs: Vec<Option<u32>>,
 }
 
 impl Flat {
-    fn new(c: &Circuit) -> Result<Flat, String> {
-        if !c.combinational() {
-            return Err("the circuit has memory, timers or a feedback loop; use a test script on the tick simulator".into());
+    pub(crate) fn new(c: &Circuit) -> Result<Flat, String> {
+        if !c.feed_forward() {
+            return Err("the circuit has memory or a feedback loop; use a test script on the tick simulator".into());
         }
         let mut slot = vec![u32::MAX; c.len()];
         for (i, &e) in c.inputs.iter().enumerate() {
@@ -121,18 +122,21 @@ impl Flat {
             if slot[e] != u32::MAX {
                 continue;
             }
-            let Kind::Gate(mode) = c.kind[e] else { unreachable!() };
+            let mode = match c.kind[e] {
+                Kind::Gate(mode) => mode,
+                _ => 1,
+            };
             slot[e] = (c.inputs.len() + gates.len()) as u32;
             gates.push((mode, c.ins[e].iter().map(|&i| slot[i as usize]).collect()));
         }
         Ok(Flat { inputs: c.inputs.len(), gates, outputs: c.outputs.iter().map(|o| o.map(|o| slot[o as usize])).collect() })
     }
 
-    fn slots(&self) -> usize {
+    pub(crate) fn slots(&self) -> usize {
         self.inputs + self.gates.len()
     }
 
-    fn eval(&self, vals: &mut [u64], w: usize) {
+    pub(crate) fn eval(&self, vals: &mut [u64], w: usize) {
         for (g, (mode, ins)) in self.gates.iter().enumerate() {
             let (before, rest) = vals.split_at_mut((self.inputs + g) * w);
             let out = &mut rest[..w];

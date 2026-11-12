@@ -9,9 +9,9 @@ use crate::circuit::Circuit;
 use crate::sim::Sim;
 
 pub fn worst_seen(c: &Circuit, transitions: usize, seed: u64) -> Result<u64, String> {
-    let limit = match c.depths() {
-        Some(d) if c.combinational() => *d.iter().max().unwrap_or(&1) as u64 + 1,
-        _ => return Err("delay needs a circuit without memory, timers or feedback".into()),
+    let limit = match c.arrivals() {
+        Some(a) if c.feed_forward() => a.iter().flatten().map(|a| a.1).max().unwrap_or(1) as u64 + 1,
+        _ => return Err("delay needs a circuit without memory or feedback".into()),
     };
     let bits = c.inputs.len();
     let mut sim = Sim::new(c, transitions);

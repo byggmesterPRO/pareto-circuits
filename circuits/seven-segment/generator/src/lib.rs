@@ -19,7 +19,7 @@ pub fn designs(n: usize) -> Result<Vec<Design>, String> {
     let mut out = vec![Design::new("table", table(&*f.f))?];
     offer(&mut out, "normal-form", normal_form(4, 7, &*f.f));
     for (name, gates, outputs) in SEARCHED {
-        let net = Netlist { inputs: 4, gates: gates.iter().map(|(m, ins)| (*m, ins.to_vec())).collect(), outputs: outputs.iter().map(|&o| Some(o)).collect(), grid: 0 };
+        let net = Netlist { inputs: 4, gates: gates.iter().map(|(m, ins)| (*m, ins.to_vec())).collect(), timers: vec![], outputs: outputs.iter().map(|&o| Some(o)).collect(), grid: 0 };
         out.push(Design { name: name.to_string(), netlist: net });
     }
     Ok(out)

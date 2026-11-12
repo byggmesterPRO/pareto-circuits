@@ -5,8 +5,11 @@
 //! gate g). Without memory the gates are in feed-forward order. A circuit with memory has gates that read
 //! later gates, or themselves. Gate modes are the game's: 0 and, 1 or, 2 xor, 3 nand, 4 nor, 5 xnor.
 //! An output is a signal, or None for a bit that is always 0 and has no gate.
+//!
+//! A netlist can also hold timers, which `balance` adds to even out the paths. They come after the gates:
+//! signal inputs + gates + t is timer t.
 
-use crate::circuit::{Circuit, Kind, LOGIC_GATE, MAX_CONNECTIONS};
+use crate::circuit::{Circuit, Kind, LOGIC_GATE, MAX_CONNECTIONS, TICKS_PER_SECOND, TIMER};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 
@@ -20,6 +23,7 @@ pub const XNOR: u8 = 5;
 pub const INPUT_COLOR: &str = "E8C547";
 pub const OUTPUT_COLOR: &str = "19E753";
 pub const GATE_COLOR: &str = "222222";
+pub const TIMER_COLOR: &str = "DF7F00";
 
 /// A signal while building: a wire, or a constant that needs no gate.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
@@ -33,6 +37,9 @@ pub enum S {
 pub struct Netlist {
     pub inputs: usize,
     pub gates: Vec<(u8, Vec<u32>)>,
+    /// Timers, as (the signal it reads, its setting in ticks). A timer set to d passes its input on d + 1
+    /// ticks later, like d + 1 gates in a row. Generators leave this empty.
+    pub timers: Vec<(u32, u32)>,
     pub outputs: Vec<Option<u32>>,
     /// Output gates per row in the blueprint; 0 puts them all in one row.
     pub grid: usize,
@@ -156,7 +163,7 @@ impl Builder {
                 S::One => return Err(format!("output bit {b} is always 1, which has no gate to stand for it")),
             });
         }
-        let mut net = Netlist { inputs: self.inputs, gates: self.gates, outputs: outs, grid: 0 };
+        let mut net = Netlist { inputs: self.inputs, gates: self.gates, timers: vec![], outputs: outs, grid: 0 };
         net.prune();
         net.split_fan_out()?;
         Ok(net)
@@ -165,14 +172,75 @@ impl Builder {
 
 impl Netlist {
     pub fn from_json(v: &Value) -> Result<Netlist, String> {
-        let c = Circuit::from_netlist(v)?;
+        Netlist::from_circuit(&Circuit::from_netlist(v)?)
+    }
+
+    /// A circuit as a netlist: its input pins become the input bits, and the gates and timers keep their
+    /// order (gates first). Fails if there are other parts than gates and timers, or no pins.
+    pub fn from_circuit(c: &Circuit) -> Result<Netlist, String> {
         let n = c.inputs.len();
-        let gates = (n..c.len()).map(|e| (if let Kind::Gate(m) = c.kind[e] { m } else { 0 }, c.ins[e].clone())).collect();
-        Ok(Netlist { inputs: n, gates, outputs: c.outputs, grid: 0 })
+        if n == 0 {
+            return Err("a netlist needs to know the inputs and outputs: give a build slot, a netlist, or pins".into());
+        }
+        let mut sig = vec![u32::MAX; c.len()];
+        for (i, &e) in c.inputs.iter().enumerate() {
+            if sig[e as usize] != u32::MAX {
+                return Err(format!("input {i} is the same part as an earlier input"));
+            }
+            sig[e as usize] = i as u32;
+        }
+        // gates keep their order if that is feed-forward already, and are put in such an order if not
+        let mut gates: Vec<usize> = (0..c.len()).filter(|&e| sig[e] == u32::MAX && matches!(c.kind[e], Kind::Gate(_))).collect();
+        let timers: Vec<usize> = (0..c.len()).filter(|&e| matches!(c.kind[e], Kind::Timer(_))).collect();
+        if n + gates.len() + timers.len() != c.len() {
+            return Err("only gates and timers fit in a netlist".into());
+        }
+        let mut seen: Vec<bool> = sig.iter().map(|&s| s != u32::MAX).collect();
+        let forward = gates.iter().all(|&e| {
+            seen[e] = true;
+            c.ins[e].iter().all(|&i| seen[i as usize])
+        });
+        if !forward {
+            if let Some(order) = c.order() {
+                gates = order.iter().map(|&e| e as usize).filter(|&e| sig[e] == u32::MAX && matches!(c.kind[e], Kind::Gate(_))).collect();
+            }
+        }
+        for (k, &e) in gates.iter().chain(&timers).enumerate() {
+            sig[e] = (n + k) as u32;
+        }
+        let mut net = Netlist { inputs: n, gates: vec![], timers: vec![], outputs: c.outputs.iter().map(|o| o.map(|o| sig[o as usize])).collect(), grid: 0 };
+        for &e in gates.iter().chain(&timers) {
+            let ins: Vec<u32> = c.ins[e].iter().map(|&i| sig[i as usize]).collect();
+            match c.kind[e] {
+                Kind::Gate(m) => net.gates.push((m, ins)),
+                _ if ins.len() != 1 => return Err(format!("a timer with {} wires going in; a timer takes one", ins.len())),
+                Kind::Timer(d) => net.timers.push((ins[0], d)),
+                _ => unreachable!(),
+            }
+        }
+        Ok(net)
+    }
+
+    /// The netlist with its timers taken out and their readers wired to what the timers read. What is left
+    /// settles on the same outputs, since a timer only delays.
+    pub fn without_timers(&self) -> Netlist {
+        let first = (self.inputs + self.gates.len()) as u32;
+        let source = |mut s: u32| {
+            while s >= first {
+                s = self.timers[(s - first) as usize].0;
+            }
+            s
+        };
+        let gates = self.gates.iter().map(|(m, ins)| (*m, ins.iter().map(|&i| source(i)).collect())).collect();
+        Netlist { inputs: self.inputs, gates, timers: vec![], outputs: self.outputs.iter().map(|o| o.map(source)).collect(), grid: self.grid }
     }
 
     pub fn to_json(&self) -> Value {
-        json!({ "inputs": self.inputs, "gates": self.gates.iter().map(|(m, i)| json!([m, i])).collect::<Vec<_>>(), "outputs": self.outputs })
+        let gates = self.gates.iter().map(|(m, i)| json!([m, i])).collect::<Vec<_>>();
+        if self.timers.is_empty() {
+            return json!({ "inputs": self.inputs, "gates": gates, "outputs": self.outputs });
+        }
+        json!({ "inputs": self.inputs, "gates": gates, "timers": self.timers, "outputs": self.outputs })
     }
 
     pub fn circuit(&self) -> Circuit {
@@ -180,17 +248,21 @@ impl Netlist {
     }
 
     fn readers(&self) -> Vec<Vec<u32>> {
-        let mut r = vec![vec![]; self.inputs + self.gates.len()];
+        let mut r = vec![vec![]; self.inputs + self.gates.len() + self.timers.len()];
         for (g, (_, ins)) in self.gates.iter().enumerate() {
             for &i in ins {
                 r[i as usize].push((self.inputs + g) as u32);
             }
         }
+        for (t, (src, _)) in self.timers.iter().enumerate() {
+            r[*src as usize].push((self.inputs + self.gates.len() + t) as u32);
+        }
         r
     }
 
-    /// Drop gates that no output depends on.
+    /// Drop gates that no output depends on. For a netlist without timers.
     pub fn prune(&mut self) {
+        assert!(self.timers.is_empty(), "prune comes before balance");
         let n = self.inputs;
         let mut live = vec![false; n + self.gates.len()];
         for o in self.outputs.iter().flatten() {
@@ -233,6 +305,7 @@ impl Netlist {
     /// adds gates but no ticks. An input pin that drives too many gets buffers (OR gates with one input)
     /// between it and its readers, which costs a tick on those paths. Fails if a gate has too many inputs.
     pub fn split_fan_out(&mut self) -> Result<(), String> {
+        assert!(self.timers.is_empty(), "split_fan_out comes before balance");
         loop {
             let n = self.inputs;
             if let Some((g, (_, ins))) = self.gates.iter().enumerate().find(|(_, (_, ins))| ins.len() > MAX_CONNECTIONS) {
@@ -306,6 +379,9 @@ impl Netlist {
     /// x = bit (with `grid` set: `grid` to a row, in as many rows as it takes), and the other gates fill the
     /// cells that are left and then the rows behind. Parts next to each other touch, so the build is one piece
     /// as long as there are enough other gates to fill the gaps.
+    ///
+    /// A timer takes a cell like a gate does and stands two blocks tall in it (its box is 1 x 2 x 1, and with
+    /// the axes used here the long side points up), so it is in nobody's way.
     pub fn blueprint(&self) -> (Value, Value) {
         let n = self.inputs;
         let readers = self.readers();
@@ -348,6 +424,20 @@ impl Netlist {
                     part(sig, *mode, GATE_COLOR, x, y)
                 }
             });
+        }
+        for (t, (_, setting)) in self.timers.iter().enumerate() {
+            let sig = n + self.gates.len() + t;
+            let (color, (x, y)) = match out_bit.get(&(sig as u32)) {
+                Some(&b) => (OUTPUT_COLOR, cell_of(b)),
+                None => (TIMER_COLOR, cells.next().unwrap()),
+            };
+            let mut timer = part(sig, 0, color, x, y);
+            timer["shapeId"] = json!(TIMER);
+            let ctrl = timer["controller"].as_object_mut().unwrap();
+            ctrl.remove("mode");
+            ctrl.insert("seconds".into(), json!(setting / TICKS_PER_SECOND));
+            ctrl.insert("ticks".into(), json!(setting % TICKS_PER_SECOND));
+            childs.push(timer);
         }
         let pins = json!({ "inputs": (0..n).collect::<Vec<_>>(), "outputs": self.outputs });
         (json!({ "bodies": [{ "childs": childs }], "joints": null, "version": 4 }), pins)

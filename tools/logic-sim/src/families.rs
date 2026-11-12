@@ -113,6 +113,33 @@ pub struct Machine {
 
 pub const MACHINES: [&str; 3] = ["counter", "ram", "register"];
 
+/// What a family has to do, of either kind. Hand it to `verify::verify` with a circuit.
+pub enum Spec {
+    /// Without memory: a function of the inputs.
+    Function(Family),
+    /// With memory: a model that has a state.
+    Machine(Machine),
+}
+
+/// The spec of any family at a size.
+pub fn spec(name: &str, size: &str) -> Result<Spec, String> {
+    if MACHINES.contains(&name) { machine(name, size).map(Spec::Machine) } else { family(name, size).map(Spec::Function) }
+}
+
+impl Spec {
+    pub fn has_memory(&self) -> bool {
+        matches!(self, Spec::Machine(_))
+    }
+
+    /// Input and output pins.
+    pub fn pins(&self) -> (u32, u32) {
+        match self {
+            Spec::Function(f) => (f.bits, f.out_bits),
+            Spec::Machine(m) => (m.bits, m.out_bits),
+        }
+    }
+}
+
 pub fn machine(name: &str, size: &str) -> Result<Machine, String> {
     match name {
         "counter" => {

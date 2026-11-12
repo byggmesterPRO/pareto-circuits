@@ -10,6 +10,8 @@ pub const TIMER: &str = "8f7fd0e7-c46e-4944-a414-7ce2437bb30f";
 pub const SWITCH: &str = "7cf717d7-d167-4f2d-a6e7-6b2c70aa3986";
 pub const BUTTON: &str = "1e8d93a4-506b-470d-9ada-9c0a321e2db5";
 pub const TICKS_PER_SECOND: u32 = 40;
+/// The longest setting a timer takes: 59 seconds and 39 ticks.
+pub const MAX_TIMER: u32 = 60 * TICKS_PER_SECOND - 1;
 /// The game's limit on wires into or out of one part.
 pub const MAX_CONNECTIONS: usize = 255;
 
@@ -39,6 +41,23 @@ pub struct Circuit {
     pub inputs: Vec<u32>,
     /// The element behind each output bit. None is a bit that is always 0 and has no gate.
     pub outputs: Vec<Option<u32>>,
+}
+
+/// The shortest and the longest path from an input to an output, in ticks. Balanced when they are the same.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub struct Balance {
+    pub balanced: bool,
+    pub shortest: u32,
+    pub longest: u32,
+}
+
+impl Balance {
+    /// How often the inputs can change: every this many ticks. The outputs are then right for at least one
+    /// tick in every round, `longest` ticks after the inputs were driven: by then the longest path has
+    /// brought the new inputs, and the shortest has not yet brought the next. 1 for a balanced circuit.
+    pub fn period(&self) -> u32 {
+        self.longest - self.shortest + 1
+    }
 }
 
 impl Circuit {
@@ -84,6 +103,26 @@ impl Circuit {
         self.order().is_some() && self.kind.iter().all(|k| matches!(k, Kind::Gate(_)))
     }
 
+    /// True for a circuit of gates and timers without feedback. A timer only delays, so once the inputs have
+    /// been steady for long enough the outputs still depend on the inputs alone.
+    pub fn feed_forward(&self) -> bool {
+        self.order().is_some() && self.kind.iter().all(|k| matches!(k, Kind::Gate(_) | Kind::Timer(_)))
+    }
+
+    /// Timers in the circuit.
+    pub fn timers(&self) -> usize {
+        self.kind.iter().filter(|k| matches!(k, Kind::Timer(_))).count()
+    }
+
+    /// Ticks a part adds to a path through it: 1, and for a timer its setting on top of that. So a timer set
+    /// to d stands for d + 1 gates in a row.
+    pub fn delay(&self, e: usize) -> u32 {
+        match self.kind[e] {
+            Kind::Timer(d) => d + 1,
+            _ => 1,
+        }
+    }
+
     /// Gates on the longest path up to and including each element (an input gate is 1).
     pub fn depths(&self) -> Option<Vec<u32>> {
         let order = self.order()?;
@@ -94,14 +133,52 @@ impl Circuit {
         Some(d)
     }
 
+    /// For each element, the ticks of the shortest and of the longest path from an input pin up to and
+    /// including it (an input gate is 1, a timer counts its setting + 1). None for an element that no input
+    /// reaches: a constant, which has no timing. None overall if there is a feedback loop.
+    pub fn arrivals(&self) -> Option<Vec<Option<(u32, u32)>>> {
+        let order = self.order()?;
+        let mut a: Vec<Option<(u32, u32)>> = vec![None; self.len()];
+        for &i in &self.inputs {
+            a[i as usize] = Some((1, 1));
+        }
+        for &e in &order {
+            let e = e as usize;
+            if a[e].is_some() {
+                continue;
+            }
+            let reached = self.ins[e].iter().filter_map(|&i| a[i as usize]);
+            let (lo, hi) = reached.fold((u32::MAX, 0), |(lo, hi), (l, h)| (lo.min(l), hi.max(h)));
+            if hi > 0 {
+                a[e] = Some((lo + self.delay(e), hi + self.delay(e)));
+            }
+        }
+        Some(a)
+    }
+
     /// Ticks as the repo README counts them: gates on the longest path from an input to an output, both ends
-    /// included. None for a circuit with memory or timers, where the family README defines ticks.
+    /// included, with a timer counted as its setting + 1 gates. None for a circuit with memory, where the
+    /// family README defines ticks.
     pub fn ticks(&self) -> Option<u32> {
-        if !self.combinational() {
+        if !self.feed_forward() {
             return None;
         }
-        let d = self.depths()?;
-        self.outputs.iter().flatten().map(|&o| d[o as usize]).max()
+        let a = self.arrivals()?;
+        self.outputs.iter().flatten().filter_map(|&o| a[o as usize]).map(|(_, hi)| hi).max()
+    }
+
+    /// Is the circuit balanced: is every path from an input to an output the same number of ticks. Then all
+    /// outputs show the result of the same inputs at the same tick, and the inputs can change every tick.
+    /// None for a circuit with memory, or one where no input reaches an output.
+    pub fn balance(&self) -> Option<Balance> {
+        if !self.feed_forward() {
+            return None;
+        }
+        let a = self.arrivals()?;
+        let outs: Vec<(u32, u32)> = self.outputs.iter().flatten().filter_map(|&o| a[o as usize]).collect();
+        let shortest = outs.iter().map(|o| o.0).min()?;
+        let longest = outs.iter().map(|o| o.1).max()?;
+        Some(Balance { balanced: shortest == longest, shortest, longest })
     }
 
     pub fn from_netlist(net: &Value) -> Result<Circuit, String> {
@@ -121,13 +198,24 @@ impl Circuit {
             let mut ins = vec![];
             for s in gate[1].as_array().ok_or(format!("netlist: gate {g} has no input list"))? {
                 let s = s.as_u64().ok_or("netlist: a signal is not a number")? as usize;
-                if s >= n + gates.len() {
+                if s >= n + gates.len() + net.get("timers").and_then(|t| t.as_array()).map_or(0, |t| t.len()) {
                     return Err(format!("netlist: gate {g} reads signal {s}, which does not exist"));
                 }
                 ins.push(s as u32);
             }
             c.kind.push(Kind::Gate(mode as u8));
             c.ins.push(ins);
+        }
+        // timers come after the gates: signal inputs + gates + t is timer t, [signal it reads, setting]
+        let timers = net.get("timers").and_then(|t| t.as_array()).map(|t| t.as_slice()).unwrap_or(&[]);
+        let total = n + gates.len() + timers.len();
+        for (t, timer) in timers.iter().enumerate() {
+            let src = timer[0].as_u64().filter(|&s| (s as usize) < total).ok_or(format!("netlist: timer {t} reads a signal that does not exist"))?;
+            let d = timer[1].as_u64().filter(|&d| d <= MAX_TIMER as u64).ok_or(format!("netlist: timer {t} needs a setting of 0 to {MAX_TIMER} ticks"))?;
+            c.kind.push(Kind::Timer(d as u32));
+            c.ins.push(vec![src as u32]);
+            c.id.push(c.id.len() as i64);
+            c.initial.push(false);
         }
         for o in net["outputs"].as_array().ok_or("netlist: no \"outputs\"")? {
             c.outputs.push(match o.as_u64() {
