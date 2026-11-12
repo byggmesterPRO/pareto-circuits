@@ -353,6 +353,29 @@ fn a_delay_longer_than_a_timer_is_a_row_of_timers() {
 }
 
 #[test]
+fn an_output_delay_stays_within_the_wire_limit() {
+    use logic_sim::balance::balance;
+    use logic_sim::circuit::MAX_CONNECTIONS;
+    // s = in 0 and in 1 (signal 2, 2 ticks) is an output, and is read by 254 gates at 3 ticks that an OR at 4
+    // reads, and by y at 4 (one tick of delay). That is 255 wires out of s, and s needs 2 ticks more as an
+    // output: a timer of its own would be wire 256, so it goes on from the timer in front of y
+    let mut gates = vec![json!([0, [0, 1]])];
+    gates.extend((0..254).map(|_| json!([0, [2]])));
+    gates.push(json!([1, (3..257).collect::<Vec<u32>>()]));
+    gates.extend([json!([0, [1]]), json!([0, [258]]), json!([0, [2, 259]])]);
+    let net = logic_sim::build::Netlist::from_json(&json!({"inputs": 2, "gates": gates, "outputs": [2, 257, 260]})).unwrap();
+    assert_eq!(net.circuit().readers()[2].len(), MAX_CONNECTIONS);
+    let b = balance(&net, None).unwrap();
+    let c = b.circuit();
+    assert!(c.readers().iter().all(|r| r.len() <= MAX_CONNECTIONS));
+    assert!(logic_sim::validate::validate(&c).problems.is_empty());
+    assert_eq!(c.balance().unwrap(), logic_sim::circuit::Balance { balanced: true, shortest: 4, longest: 4 });
+    assert_eq!(c.timers(), 2);
+    let same = check(&c, &Expect::Circuit(&net.circuit()), 2, &[]).unwrap();
+    assert!(same.exhaustive && same.wrong == 0);
+}
+
+#[test]
 fn one_long_path_is_enough_to_be_unbalanced() {
     // out 0 = in 0 xor (in 0 and in 1): in 0 arrives by 2 ticks and by 3
     let c = Circuit::from_netlist(&json!({"inputs": 2, "gates": [[0, [0, 1]], [2, [0, 2]]], "outputs": [3]})).unwrap();
@@ -398,21 +421,24 @@ fn one_verify_for_both_kinds_of_family() {
     // without memory: tried on every input, and its one delay is its longest path
     let adder = spec("adder", "3bit").unwrap();
     assert!(!adder.has_memory() && adder.pins() == (6, 4));
-    let res = verify(&ripple3().circuit(), &adder, 2).unwrap();
+    let res = verify(&ripple3().circuit(), &adder, 2, false).unwrap();
     assert!(res.exhaustive && res.wrong == 0 && res.problem.is_none());
     assert_eq!(res.ticks, 6);
     assert_eq!(res.timing, Timing { read: 6, write: None, setup: None, period: Some(5), pulse_at: None });
     // with memory: random operations, and a delay for each thing that can be waited for
     let register = spec("register", "2bit").unwrap();
     assert!(register.has_memory() && register.pins() == (3, 2));
-    let res = verify(&register2(), &register, 2).unwrap();
+    let res = verify(&register2(), &register, 2, true).unwrap();
     assert!(!res.exhaustive && res.wrong == 0 && res.problem.is_none());
     assert_eq!(res.ticks, 3);
     assert_eq!(res.timing, Timing { read: 0, write: Some(3), setup: Some(2), period: Some(4), pulse_at: Some(1) });
+    // how often operations can come is only looked for when asked
+    let t = verify(&register2(), &register, 2, false).unwrap().timing;
+    assert_eq!((t.period, t.pulse_at), (None, None));
     // the wrong circuit for a family is a problem, the wrong pins cannot be checked at all
-    assert!(verify(&ripple3().circuit(), &spec("subtractor", "3bit").unwrap(), 2).unwrap().problem.is_some());
-    assert!(verify(&register2(), &adder, 2).is_err());
-    assert!(verify(&ripple3().circuit(), &register, 2).is_err());
+    assert!(verify(&ripple3().circuit(), &spec("subtractor", "3bit").unwrap(), 2, false).unwrap().problem.is_some());
+    assert!(verify(&register2(), &adder, 2, false).is_err());
+    assert!(verify(&ripple3().circuit(), &register, 2, false).is_err());
 }
 
 #[test]

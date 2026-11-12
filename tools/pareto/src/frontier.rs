@@ -6,8 +6,10 @@
 //! outputs (read), from a pulse to the outputs (write), how long the inputs have to be steady before a pulse
 //! (setup), how often operations can come (period), and the gates.
 //!
-//! The frontier is every design that no other design matches or beats on all of its axes. Any wish of the
-//! kind "the smallest that is at most this slow" is answered by a design on the frontier.
+//! The frontier is every design that no other design matches or beats on all of its axes. Without memory
+//! those are only ticks and size, so a wish like "the smallest that is at most this slow" is answered by a
+//! design on it, but one with `max_period` may be met only by a design off it. So `pick` looks at every
+//! design, not only the frontier.
 //!
 //! Two designs that are the same on every axis are told apart by what they cost balanced: the one that needs
 //! fewer parts then is the better circuit to have.
@@ -60,6 +62,7 @@ impl Point {
         let size = self.size(balanced)?;
         Some(match self.timing {
             Timing { write: Some(write), setup, period, read, .. } => vec![read, write, setup.unwrap_or(0), period.unwrap_or(u64::MAX), size],
+            // not the period: a design off the frontier can have a shorter one, which is why `pick` looks at all
             _ => vec![self.ticks, size],
         })
     }

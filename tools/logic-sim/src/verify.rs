@@ -27,7 +27,7 @@ pub struct Timing {
     pub setup: Option<u64>,
     /// How often new inputs can come: every this many ticks. Without memory that is the longest path minus
     /// the shortest, plus 1, so 1 for a balanced circuit. With memory it is the shortest gap between
-    /// operations that was seen to work (see `memory::pace`), or None if none was found.
+    /// operations that was seen to work (see `memory::pace`), or None if none was found or it was not asked for.
     pub period: Option<u64>,
     /// With memory: how many ticks after the level inputs the pulse comes, at that period.
     pub pulse_at: Option<u64>,
@@ -57,7 +57,8 @@ impl Verified {
 
 /// Fails only if the circuit cannot be checked at all: the wrong number of pins, or a loop where there
 /// should be none. A circuit that gives wrong outputs comes back with `wrong` counted and `problem` set.
-pub fn verify(c: &Circuit, spec: &Spec, threads: usize) -> Result<Verified, String> {
+/// With memory, `period` and `pulse_at` are only looked for if `pace` is set, since that takes a while.
+pub fn verify(c: &Circuit, spec: &Spec, threads: usize, pace: bool) -> Result<Verified, String> {
     let (bits, out_bits) = spec.pins();
     if (c.inputs.len() as u32, c.outputs.len() as u32) != (bits, out_bits) {
         return Err(format!("{} inputs and {} outputs, the family has {bits} and {out_bits}", c.inputs.len(), c.outputs.len()));
@@ -74,7 +75,7 @@ pub fn verify(c: &Circuit, spec: &Spec, threads: usize) -> Result<Verified, Stri
             let res = memory::run(c, m, OPERATIONS, 0x5EED)?;
             let problem = (res.wrong > 0).then(|| format!("{} of {} operations end with a wrong output: {}", res.wrong, res.operations, res.example.clone().unwrap_or_default()));
             // how often operations can come is only worth asking of a circuit that works when given time
-            let pace = if res.wrong == 0 { memory::pace(c, m, res.setup + res.write + 16, 0x5EED)? } else { None };
+            let pace = if pace && res.wrong == 0 { memory::pace(c, m, res.setup + res.write + 16, 0x5EED)? } else { None };
             let timing = Timing { read: res.read, write: Some(res.write), setup: Some(res.setup), period: pace.map(|p| p.period), pulse_at: pace.map(|p| p.pulse_at) };
             let ticks = if m.ticks_is_read { res.read } else { res.write };
             Ok(Verified { wrong: res.wrong, tested: res.operations, exhaustive: false, example: None, problem, ticks, timing })

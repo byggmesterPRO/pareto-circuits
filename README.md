@@ -83,6 +83,7 @@ path from an input to an output is the same number of ticks, so that the inputs 
 - **gates**: every logic gate in the blueprint, input and output gates included.
 - **ticks**: worst-case ticks from an input changing until the outputs are correct. Each gate adds 1 tick, so this is the number of gates on the longest path from an input to an output, counting both ends.
 - Circuits with memory (RAM, counters) define what `ticks` means in their family README, for example read delay.
+- **timers**: a timer set to `d` adds `d + 1` ticks, like `d + 1` gates in a row. Timers are counted apart from gates: `gates` never includes them, `timers` is how many there are, and the parts in the blueprint are `gates + timers`. Builds have no timers; the balanced form of a design (every path the same number of ticks, made by `pareto pick --balanced`) does, and there an output pin can be a timer.
 
 ### meta.json
 

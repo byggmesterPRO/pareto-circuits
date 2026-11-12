@@ -101,8 +101,9 @@ What differs is the timing, because one delay is not enough for a circuit with m
 
 `period` is the answer to "how often" for both kinds. With memory, an operation is `period` ticks long: the
 data and address change at its start, the pulse (if there is one) comes `pulse_at` ticks later, and at its
-end the outputs have to be what the model says. `verify` tries periods from 1 up and gives the first that
-works on 3000 random operations in a row, over 64 copies. It is what was seen to work, not a proof.
+end the outputs have to be what the model says. `verify --pace` (`"pace": true` in a request) tries periods
+from 1 up and gives the first that works on 3000 random operations in a row, over 64 copies. It is what was
+seen to work, not a proof. Without `--pace`, `period` and `pulse_at` are null for a circuit with memory.
 
 Whether a circuit has memory is never declared: it has, if a part reads itself around a loop
 (`Circuit::feed_forward`). Timers do not make memory. A circuit of gates and timers without a loop is still

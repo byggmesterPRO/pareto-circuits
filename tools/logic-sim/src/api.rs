@@ -97,11 +97,12 @@ fn report(c: &Circuit, res: Checked) -> Value {
 }
 
 /// Check a circuit against its family, of either kind. The reply has the same fields for both, and the
-/// timing a family without memory does not have is null.
-fn verify(c: &Circuit, fam: &str, size: &str) -> Result<Value, String> {
+/// timing a family without memory does not have is null. With memory, `period` and `pulse_at` are null too
+/// unless `pace` is asked for.
+fn verify(c: &Circuit, fam: &str, size: &str, pace: bool) -> Result<Value, String> {
     let v = validate::validate(c);
     let mut problems = v.problems;
-    let res = match verify::verify(c, &spec(fam, size)?, threads()) {
+    let res = match verify::verify(c, &spec(fam, size)?, threads(), pace) {
         Ok(res) => res,
         Err(e) => return Ok(json!({ "problems": [e], "warnings": v.warnings })),
     };
@@ -137,12 +138,13 @@ fn run(req: &Value) -> Result<Value, String> {
     match cmd {
         "verify" => {
             need_pins()?;
+            let pace = req["pace"].as_bool().unwrap_or(false);
             let Some(meta) = meta.filter(|_| req.get("family").is_none()) else {
                 let fam = req["family"].as_str().ok_or("verify needs \"family\" and \"size\" unless the circuit is a build slot")?;
-                return verify(&c, fam, req["size"].as_str().ok_or("verify needs \"size\"")?);
+                return verify(&c, fam, req["size"].as_str().ok_or("verify needs \"size\"")?, pace);
             };
             let (fam, size) = (meta["family"].as_str().unwrap_or(""), meta["size"].as_str().unwrap_or(""));
-            let mut res = verify(&c, fam, size)?;
+            let mut res = verify(&c, fam, size, pace)?;
             let mut problems: Vec<Value> = res["problems"].as_array().cloned().unwrap_or_default();
             for key in ["gates", "ticks"] {
                 if res.get(key).is_some() && meta[key] != res[key] {

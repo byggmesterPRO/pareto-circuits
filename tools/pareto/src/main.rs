@@ -6,8 +6,10 @@
 //!
 //! Beside the profiles there is the frontier (`frontier.rs`): every design that no other beats on both gates
 //! and ticks, and `pick`, which answers a wish like "the smallest 13 bit adder of at most 8 ticks, balanced".
-//! Balanced there is the game's meaning, every path the same number of ticks, and not the profile's. Every
-//! design without memory is also measured in its balanced form: `logic_sim::balance` pads it with timers.
+//! Balanced there is the game's meaning, every path the same number of ticks, and not the profile's. For
+//! `frontier`, `pick` and `designs --balanced`, every design without memory is also measured in its balanced
+//! form: `logic_sim::balance` pads it with timers. That search takes a while, so `build` does not do it, and
+//! a design it fails for is still measured as it is, only without a balanced form.
 //!
 //! Whether a family has memory is not asked here by name. `logic_sim::verify` checks and measures a design
 //! of either kind, and what differs after that (no balanced form, more delays than one) is read off the
@@ -30,7 +32,8 @@ use std::{env, fs, process, thread};
 
 const USAGE: &str = "pareto: generators and builds for the circuit families
 
-  pareto designs <family> <size>                  every design the generator has for this size, measured
+  pareto designs <family> <size> [--balanced]     every design the generator has for this size, measured
+                                                  (--balanced: and what each costs balanced)
   pareto netlist <family> <size> <design> <out>   write one design as a netlist.json
   pareto build <family> <size> [--write]          pick the fast, small and balanced winners for one size
   pareto build-all <family> [--write]             the same for every size the family has slots for
@@ -101,7 +104,8 @@ struct Measured {
     gates: u64,
     ticks: u64,
     verified: &'static str,
-    /// The design with timers added until every path is `ticks` ticks. None for a circuit with memory.
+    /// The design with timers added until every path is `ticks` ticks. None for a circuit with memory, when
+    /// it was not asked for, or when balancing it failed.
     balanced: Option<Netlist>,
 }
 
@@ -162,12 +166,14 @@ fn threads() -> usize {
     thread::available_parallelism().map(|n| n.get()).unwrap_or(1)
 }
 
-/// Check a design against its family and count it. A wrong or unbuildable design is an error.
-fn measure(fam: &str, size: &str, d: Design) -> Result<Measured, String> {
+/// Check a design against its family and count it. A wrong or unbuildable design is an error. With
+/// `balanced`, a design without memory is balanced too, and with `pace`, how often operations can come is
+/// found for a design with memory; both take a while.
+fn measure(fam: &str, size: &str, d: Design, balanced: bool, pace: bool) -> Result<Measured, String> {
     let spec = spec(fam, size)?;
     let named = |e: String| format!("{}: {e}", d.name);
     let c = d.netlist.circuit();
-    let res = verify(&c, &spec, threads()).map_err(named)?;
+    let res = verify(&c, &spec, threads(), pace).map_err(named)?;
     if let Some(problem) = res.problem {
         return Err(named(problem));
     }
@@ -182,7 +188,12 @@ fn measure(fam: &str, size: &str, d: Design) -> Result<Measured, String> {
             note += &format!(" An operation every {period} ticks, the pulse {at} ticks after the inputs.");
         }
     }
-    let balanced = if spec.has_memory() { None } else { Some(balanced_form(&d.netlist, res.ticks).map_err(named)?) };
+    // a design that cannot be balanced is still a design: it only has no balanced form
+    let balanced = if !balanced || spec.has_memory() {
+        None
+    } else {
+        balanced_form(&d.netlist, res.ticks).map_err(|e| eprintln!("warning: {fam} {size} {}: no balanced form: {e}", d.name)).ok()
+    };
     Ok(Measured { note, timing: t, name: d.name, netlist: d.netlist, gates: c.gates() as u64, ticks: res.ticks, verified: res.verified(), balanced })
 }
 
@@ -199,8 +210,8 @@ fn bits_of(size: &str) -> Result<usize, String> {
     size.strip_suffix("bit").and_then(|s| s.parse().ok()).ok_or(format!("\"{size}\" is not a size like 8bit"))
 }
 
-fn measured(fam: &str, size: &str) -> Result<Vec<Measured>, String> {
-    designs(fam, size)?.into_iter().map(|d| measure(fam, size, d)).collect()
+fn measured(fam: &str, size: &str, balanced: bool, pace: bool) -> Result<Vec<Measured>, String> {
+    designs(fam, size)?.into_iter().map(|d| measure(fam, size, d, balanced, pace)).collect()
 }
 
 fn repo_root() -> Result<PathBuf, String> {
@@ -284,7 +295,7 @@ fn write_slot(slot: &Path, fam: &str, size: &str, profile: &str, m: &Measured, a
     fs::write(slot.join("meta.json"), serde_json::to_string_pretty(&meta).unwrap() + "\n").map_err(|e| e.to_string())?;
     // read the slot back the way the verifier does and check it once more
     let (c, _) = load(slot, None)?;
-    let res = verify(&c, &spec(fam, size)?, threads())?;
+    let res = verify(&c, &spec(fam, size)?, threads(), false)?;
     if res.wrong > 0 || c.gates() as u64 != m.gates || res.ticks != m.ticks {
         return Err(format!("the slot written to {} does not check out", slot.display()));
     }
@@ -292,11 +303,10 @@ fn write_slot(slot: &Path, fam: &str, size: &str, profile: &str, m: &Measured, a
 }
 
 fn build(fam: &str, size: &str, write: bool, authors: &[String]) -> Result<(), String> {
-    let all = measured(fam, size)?;
+    let all = measured(fam, size, false, false)?;
     let root = repo_root()?;
     for profile in PROFILES {
-        // of designs with the same score, the one that is smaller when balanced
-        let best = all.iter().min_by_key(|m| (score(profile, m.gates, m.ticks), m.balanced_size())).ok_or("the generator has no designs for this size")?;
+        let best = all.iter().min_by_key(|m| score(profile, m.gates, m.ticks)).ok_or("the generator has no designs for this size")?;
         let slot = root.join("circuits").join(fam).join("builds").join(size).join(profile);
         let now = current(&slot);
         let wins = now.as_ref().is_none_or(|(g, t, _, _)| score(profile, best.gates, best.ticks) < score(profile, *g, *t));
@@ -321,7 +331,7 @@ fn best(fam: &str, size: &str, wish: &Wish) -> Result<Measured, String> {
     if !memory && (wish.max_write.is_some() || wish.max_setup.is_some()) {
         return Err(format!("{fam} has no memory, so no pulse: --max-write and --max-setup do not apply. Its one delay is --max-ticks."));
     }
-    let mut all = measured(fam, size)?;
+    let mut all = measured(fam, size, true, true)?;
     let points: Vec<Point> = all.iter().map(|m| m.point()).collect();
     match frontier::pick(&points, wish) {
         Some(i) => Ok(all.swap_remove(i)),
@@ -353,7 +363,7 @@ fn write_pick(dir: &Path, fam: &str, size: &str, m: &Measured, balanced: bool) -
     let desc = json!({ "description": format!("{about}\n{LINK}"), "localId": new_id(), "name": name, "type": "Blueprint", "version": 0 });
     fs::write(dir.join("description.json"), serde_json::to_string_pretty(&desc).unwrap() + "\n").map_err(err)?;
     let (c, _) = load(&dir.join("blueprint.json"), Some(&pins))?;
-    let res = verify(&c, &spec(fam, size)?, threads())?;
+    let res = verify(&c, &spec(fam, size)?, threads(), false)?;
     if res.wrong > 0 || c.gates() as u64 != m.gates || c.timers() != timers || !validate(&c).problems.is_empty() {
         return Err(format!("the blueprint written to {} does not check out", dir.display()));
     }
@@ -397,12 +407,12 @@ fn run(mut args: Vec<String>) -> Result<(), String> {
     match arg(0)? {
         "designs" => {
             let (fam, size) = (arg(1)?, arg(2)?);
-            let all = measured(fam, size)?;
+            let all = measured(fam, size, wish.balanced, false)?;
             let points: Vec<Point> = all.iter().map(|m| m.point()).collect();
             let (free, even) = (frontier::frontier(&points, false), frontier::frontier(&points, true));
             println!("{:<18}{:>7}{:>7}{:>14}{:>10}{:>8}  {:<11}{:<19}wins", "design", "gates", "ticks", "gates x ticks", "balanced", "period", "verified", "frontier");
             for (i, m) in all.iter().enumerate() {
-                let wins: Vec<&str> = PROFILES.into_iter().filter(|p| all.iter().min_by_key(|o| (score(p, o.gates, o.ticks), o.balanced_size())).is_some_and(|b| b.name == m.name)).collect();
+                let wins: Vec<&str> = PROFILES.into_iter().filter(|p| all.iter().min_by_key(|o| score(p, o.gates, o.ticks)).is_some_and(|b| b.name == m.name)).collect();
                 let on: Vec<&str> = [("gates", &free), ("balanced", &even)].into_iter().filter(|(_, f)| f.contains(&i)).map(|(n, _)| n).collect();
                 let or_dash = |v: Option<u64>| v.map_or("-".to_string(), |v| v.to_string());
                 println!("{:<18}{:>7}{:>7}{:>14}{:>10}{:>8}  {:<11}{:<19}{}", m.name, m.gates, m.ticks, m.gates * m.ticks, or_dash(m.balanced_size()), or_dash(m.timing.period), m.verified, on.join(", "), wins.join(", "));
@@ -412,14 +422,14 @@ fn run(mut args: Vec<String>) -> Result<(), String> {
         "netlist" => {
             let (fam, size, name) = (arg(1)?, arg(2)?, arg(3)?);
             let d = designs(fam, size)?.into_iter().find(|d| d.name == name).ok_or(format!("{fam} has no design \"{name}\" at {size}"))?;
-            let m = measure(fam, size, d)?;
+            let m = measure(fam, size, d, false, false)?;
             fs::write(arg(4)?, m.netlist.to_json().to_string() + "\n").map_err(|e| e.to_string())?;
             println!("{}: {} gates, {} ticks, {}", m.name, m.gates, m.ticks, m.verified);
             Ok(())
         }
         "frontier" => {
             let (fam, size) = (arg(1)?, arg(2)?);
-            let all = measured(fam, size)?;
+            let all = measured(fam, size, true, true)?;
             let points: Vec<Point> = all.iter().map(|m| m.point()).collect();
             let or_dash = |v: Option<u64>| v.map_or("-".to_string(), |v| v.to_string());
             if spec(fam, size)?.has_memory() {
@@ -479,7 +489,7 @@ mod tests {
                 assert!(!all.is_empty(), "{fam} {size} has no designs");
                 for d in all {
                     let name = d.name.clone();
-                    let m = measure(fam, &size, d).unwrap_or_else(|e| panic!("{fam} {size} {name}: {e}"));
+                    let m = measure(fam, &size, d, false, false).unwrap_or_else(|e| panic!("{fam} {size} {name}: {e}"));
                     assert_eq!(m.verified, "exhaustive");
                 }
             }
@@ -493,13 +503,13 @@ mod tests {
             for size in sizes {
                 for d in designs(fam, size).unwrap() {
                     let name = d.name.clone();
-                    measure(fam, size, d).unwrap_or_else(|e| panic!("{fam} {size} {name}: {e}"));
+                    measure(fam, size, d, false, false).unwrap_or_else(|e| panic!("{fam} {size} {name}: {e}"));
                 }
             }
         }
         // how often operations can come is found for each, and is what the family READMEs say
         let pace = |fam: &str, size: &str| {
-            let t = measured(fam, size).unwrap().remove(0).timing;
+            let t = measured(fam, size, false, true).unwrap().remove(0).timing;
             (t.read, t.write.unwrap(), t.setup.unwrap(), t.period.unwrap(), t.pulse_at.unwrap())
         };
         assert_eq!(pace("counter", "8bit"), (0, 3, 1, 3, 0));
@@ -512,7 +522,7 @@ mod tests {
         let mut d = designs("register", "4bit").unwrap().remove(0);
         let g = d.netlist.gates.iter().position(|(m, _)| *m == 0).unwrap();
         d.netlist.gates[g].0 = 1;
-        assert!(measure("register", "4bit", d).is_err());
+        assert!(measure("register", "4bit", d, false, false).is_err());
     }
 }
 

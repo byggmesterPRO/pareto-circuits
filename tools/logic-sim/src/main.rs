@@ -12,6 +12,7 @@ A <circuit> is a build slot folder, a blueprint.json or a netlist.json.
 
   logic-sim verify <slot>                         check a build slot against its meta.json
   logic-sim verify <circuit> <family> <size>      check against a known family, for example double-dabble 12bit
+                                                  (--pace: with memory, also how often operations can come)
   logic-sim equal <circuit> <reference circuit>   do two circuits give the same outputs for every input
   logic-sim check <circuit> --table <file.json>   check against a list with one output value per input
   logic-sim check <circuit> --cases <file.json>   check chosen inputs: [[input, output], ...]
@@ -46,6 +47,10 @@ fn request(mut args: Vec<String>) -> Result<Value, String> {
             req.insert(flag[2..].to_string(), if flag == "--pins" { json!(file) } else { read(&file)? });
             args.drain(i..i + 2);
         }
+    }
+    if let Some(i) = args.iter().position(|a| a == "--pace") {
+        args.remove(i);
+        req.insert("pace".into(), json!(true));
     }
     let cmd = args.first().ok_or(USAGE)?.as_str();
     req.insert("circuit".into(), json!(args.get(1).ok_or(format!("{cmd} needs a circuit\n\n{USAGE}"))?));

@@ -227,16 +227,30 @@ pub fn balance(net: &Netlist, ticks: Option<u32>) -> Result<Netlist, String> {
                 by_delay.entry(wait).or_default().push(r);
             }
         }
+        // wires out of s: the readers that need no delay, and one to each timer that delays the others
+        let mut wires = readers[s].len() - by_delay.values().map(|rs| rs.len()).sum::<usize>();
+        // the last timer of each delay: (its delay, the timer, how many it drives)
+        let mut ends: Vec<(u32, u32, usize)> = vec![];
         for (wait, rs) in by_delay {
             for group in rs.chunks(MAX_CONNECTIONS) {
                 let t = delayed(s as u32, wait);
                 for &r in group {
                     net.gates[r as usize - n].1.iter_mut().filter(|i| **i as usize == s).for_each(|i| *i = t);
                 }
+                wires += 1;
+                ends.push((wait, t, group.len()));
             }
         }
         if output[s] && level[s] < last {
-            let t = delayed(s as u32, last - level[s]);
+            // one more wire out of s would be too many: go on from the longest delay s has already, whose
+            // last timer has room (a delay is shorter than the one to the last level, so it fits in front)
+            let from = if wires < MAX_CONNECTIONS {
+                (s as u32, last - level[s])
+            } else {
+                let &(wait, t, _) = ends.iter().filter(|e| e.2 < MAX_CONNECTIONS).max().ok_or(format!("signal {s} drives {MAX_CONNECTIONS} gates with no delay and is an output that needs one"))?;
+                (t, last - level[s] - wait)
+            };
+            let t = delayed(from.0, from.1);
             net.outputs.iter_mut().flatten().filter(|o| **o as usize == s).for_each(|o| *o = t);
         }
     }

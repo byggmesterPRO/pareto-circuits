@@ -35,7 +35,9 @@ A one-off search result that sits in a slot stays there until a design beats it.
 
 The three profiles are three points. The frontier is all of them: every design that no other design beats on
 both gates and ticks. `pareto frontier <family> <size>` lists it, fastest first, and each one after is slower
-and smaller. Whatever is wanted, the answer is on it.
+and smaller. A wish on ticks and size alone is answered by a design on it. A wish on more than that, such as
+`--max-period`, may only be met by a design off it, so `pick` looks through every design, not only the
+frontier.
 
 `pareto pick <family> <size>` gives the one design that fits a wish, at any size, not only the sizes with
 slots:
