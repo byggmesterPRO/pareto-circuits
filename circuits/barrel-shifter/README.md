@@ -18,22 +18,22 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 |---|---|---|---|---|---|---|---|
 | 2bit | fast | v1.0 | 7 | 3 | normal-form | exhaustive | |
 | 2bit | small | v1.0 | 7 | 3 | normal-form | exhaustive | |
-| 2bit | balanced | v1.0 | 7 | 3 | normal-form | exhaustive | |
+| 2bit | efficient | v1.0 | 7 | 3 | normal-form | exhaustive | |
 | 4bit | fast | v1.0 | 22 | 3 | normal-form | exhaustive | |
 | 4bit | small | v1.0 | 21 | 4 | flat | exhaustive | |
-| 4bit | balanced | v1.0 | 22 | 3 | normal-form | exhaustive | |
+| 4bit | efficient | v1.0 | 22 | 3 | normal-form | exhaustive | |
 | 8bit | fast | v1.0 | 75 | 3 | normal-form | exhaustive | |
 | 8bit | small | v1.0 | 57 | 4 | flat | exhaustive | |
-| 8bit | balanced | v1.0 | 75 | 3 | normal-form | exhaustive | |
+| 8bit | efficient | v1.0 | 75 | 3 | normal-form | exhaustive | |
 | 16bit | fast | v1.0 | 175 | 4 | flat | exhaustive | |
 | 16bit | small | v1.0 | 149 | 6 | stages-2 | exhaustive | |
-| 16bit | balanced | v1.0 | 175 | 4 | flat | exhaustive | |
+| 16bit | efficient | v1.0 | 175 | 4 | flat | exhaustive | |
 | 32bit | fast | v1.0 | 608 | 4 | flat | sampled | |
 | 32bit | small | v1.0 | 391 | 8 | stages-2 | sampled | |
-| 32bit | balanced | v1.0 | 405 | 6 | stages-3 | sampled | |
+| 32bit | efficient | v1.0 | 405 | 6 | stages-3 | sampled | |
 | 64bit | fast | v1.0 | 2270 | 4 | flat | sampled | |
 | 64bit | small | v1.0 | 889 | 8 | stages-2 | sampled | |
-| 64bit | balanced | v1.0 | 967 | 6 | stages-3 | sampled | |
+| 64bit | efficient | v1.0 | 967 | 6 | stages-3 | sampled | |
 
 Gates include the input gates. Up to 16 bit every input was tried. 32 and 64 bit were checked on about a million inputs: random ones, and
 for every amount a single bit in every place, all bits, and all bits but one. None has been tested in the game yet.

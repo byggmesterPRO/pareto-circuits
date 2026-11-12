@@ -58,7 +58,7 @@ Inputs and outputs can be up to 128 bits wide each, which is what a 64bit adder 
 
 Balanced is the game's word for a circuit where every path from an input to an output is the same number of
 ticks. Its outputs always belong to the inputs of one tick, so the inputs can change every tick and a result
-comes out every tick, `ticks` ticks later. It is not the `balanced` build profile, which is about gates x ticks.
+comes out every tick, `ticks` ticks later. It is not a build profile: the profile for lowest gates x ticks is called `efficient`.
 
 - `count` says whether a circuit is balanced, from the wiring: `balanced`, and `shortest_path` next to `ticks`
   (the longest). They are equal when it is.

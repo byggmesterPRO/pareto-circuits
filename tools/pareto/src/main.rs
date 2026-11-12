@@ -2,7 +2,7 @@
 //!
 //! A family's generator offers several designs for a size. Each one is checked and counted by logic-sim, and
 //! the three profiles go to whichever design wins by the README's rule: fast is fewest ticks, small is fewest
-//! gates, balanced is lowest gates x ticks. A slot is only written when the winner beats what is in it.
+//! gates, efficient is lowest gates x ticks. A slot is only written when the winner beats what is in it.
 //!
 //! Beside the profiles there is the frontier (`frontier.rs`): every design that no other beats on both gates
 //! and ticks, and `pick`, which answers a wish like "the smallest 13 bit adder of at most 8 ticks, balanced".
@@ -35,7 +35,7 @@ const USAGE: &str = "pareto: generators and builds for the circuit families
   pareto designs <family> <size> [--balanced]     every design the generator has for this size, measured
                                                   (--balanced: and what each costs balanced)
   pareto netlist <family> <size> <design> <out>   write one design as a netlist.json
-  pareto build <family> <size> [--write]          pick the fast, small and balanced winners for one size
+  pareto build <family> <size> [--write]          pick the fast, small and efficient winners for one size
   pareto build-all <family> [--write]             the same for every size the family has slots for
   pareto frontier <family> <size>                 the designs nothing beats on both gates and ticks
   pareto pick <family> <size> [wishes]            the one design that fits best: the smallest, unless --fastest
@@ -57,7 +57,7 @@ const USAGE: &str = "pareto: generators and builds for the circuit families
 Any size works for pick, frontier and designs, not only the ones with build slots: 13bit, 24bit ...
 
 Run it from inside the repo. Families: ";
-const PROFILES: [&str; 3] = ["fast", "small", "balanced"];
+const PROFILES: [&str; 3] = ["fast", "small", "efficient"];
 const LINK: &str = "https://github.com/byggmesterPRO/pareto-circuits";
 
 type Designs = Box<dyn Fn(&str) -> Result<Vec<Design>, String>>;

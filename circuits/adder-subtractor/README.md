@@ -17,19 +17,19 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 |---|---|---|---|---|---|---|---|
 | 2bit | fast | v1.0 | 18 | 5 | lookahead | exhaustive | |
 | 2bit | small | v1.0 | 16 | 7 | ripple | exhaustive | |
-| 2bit | balanced | v1.0 | 18 | 5 | lookahead | exhaustive | |
+| 2bit | efficient | v1.0 | 18 | 5 | lookahead | exhaustive | |
 | 4bit | fast | v1.0 | 37 | 5 | lookahead | exhaustive | |
 | 4bit | small | v1.0 | 30 | 11 | ripple | exhaustive | |
-| 4bit | balanced | v1.0 | 37 | 5 | lookahead | exhaustive | |
+| 4bit | efficient | v1.0 | 37 | 5 | lookahead | exhaustive | |
 | 8bit | fast | v1.0 | 87 | 5 | lookahead | exhaustive | |
 | 8bit | small | v1.0 | 58 | 19 | ripple | exhaustive | |
-| 8bit | balanced | v1.0 | 71 | 6 | two-level-4 | exhaustive | |
+| 8bit | efficient | v1.0 | 71 | 6 | two-level-4 | exhaustive | |
 | 16bit | fast | v1.0 | 235 | 5 | lookahead | sampled | |
 | 16bit | small | v1.0 | 114 | 35 | ripple | sampled | |
-| 16bit | balanced | v1.0 | 157 | 6 | two-level-4 | sampled | |
+| 16bit | efficient | v1.0 | 157 | 6 | two-level-4 | sampled | |
 | 32bit | fast | v1.0 | 731 | 5 | lookahead | sampled | |
 | 32bit | small | v1.0 | 226 | 67 | ripple | sampled | |
-| 32bit | balanced | v1.0 | 365 | 6 | two-level-8 | sampled | |
+| 32bit | efficient | v1.0 | 365 | 6 | two-level-8 | sampled | |
 
 Gates include the input gates. Up to 8 bit every input was tried. From 16 bit on they were checked on about a million inputs, with the
 adder's carry chains and the subtractor's borrow chains among them. None has been tested in the game yet.

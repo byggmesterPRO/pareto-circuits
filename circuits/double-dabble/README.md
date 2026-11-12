@@ -12,7 +12,7 @@ Size is the number of input bits. `12bit` takes 0..4095 and gives four digits.
   bit first in each digit. They are in the second row, except in the three 12bit builds, where they sit one
   row further back.
 - A digit bit that passes straight through has no green gate: read it from the input gate. That is ones bit 0,
-  which is input bit 0, in every build but the 12bit `fast` and `balanced`.
+  which is input bit 0, in every build but the 12bit `fast` and `efficient`.
 - A digit bit that can never be 1 has no gate at all. At 12 bits that is bit 3 of the thousands digit (x = 15),
   since the highest value is 4095.
 
@@ -25,25 +25,25 @@ reads; the colours are for players.
 |---|---|---|---|---|---|---|---|
 | 2bit | fast | v1.0 | 2 | 1 | chain-7 | exhaustive | |
 | 2bit | small | v1.0 | 2 | 1 | chain-7 | exhaustive | |
-| 2bit | balanced | v1.0 | 2 | 1 | chain-7 | exhaustive | |
+| 2bit | efficient | v1.0 | 2 | 1 | chain-7 | exhaustive | |
 | 4bit | fast | v1.0 | 11 | 3 | chain-8 | exhaustive | |
 | 4bit | small | v1.0 | 10 | 6 | chain-7 | exhaustive | |
-| 4bit | balanced | v1.0 | 11 | 3 | chain-8 | exhaustive | |
+| 4bit | efficient | v1.0 | 11 | 3 | chain-8 | exhaustive | |
 | 8bit | fast | v1.0 | 62 | 11 | chain-8 | exhaustive | |
 | 8bit | small | v1.0 | 55 | 30 | chain-7 | exhaustive | |
-| 8bit | balanced | v1.0 | 62 | 11 | chain-8 | exhaustive | |
+| 8bit | efficient | v1.0 | 62 | 11 | chain-8 | exhaustive | |
 | 12bit | fast | v1.0 | 327 | 4 | search | exhaustive | |
 | 12bit | small | v1.0 | 101 | 52 | search | exhaustive | |
-| 12bit | balanced | v1.0 | 327 | 4 | search | exhaustive | |
+| 12bit | efficient | v1.0 | 327 | 4 | search | exhaustive | |
 | 16bit | fast | v1.0 | 277 | 27 | chain-8 | exhaustive | |
 | 16bit | small | v1.0 | 244 | 78 | chain-7 | exhaustive | |
-| 16bit | balanced | v1.0 | 277 | 27 | chain-8 | exhaustive | |
+| 16bit | efficient | v1.0 | 277 | 27 | chain-8 | exhaustive | |
 | 32bit | fast | v1.0 | 1177 | 59 | chain-8 | exhaustive | |
 | 32bit | small | v1.0 | 1033 | 174 | chain-7 | exhaustive | |
-| 32bit | balanced | v1.0 | 1177 | 59 | chain-8 | exhaustive | |
+| 32bit | efficient | v1.0 | 1177 | 59 | chain-8 | exhaustive | |
 | 64bit | fast | v1.0 | 4811 | 123 | chain-8 | sampled | |
 | 64bit | small | v1.0 | 4216 | 366 | chain-7 | sampled | |
-| 64bit | balanced | v1.0 | 4811 | 123 | chain-8 | sampled | |
+| 64bit | efficient | v1.0 | 4811 | 123 | chain-8 | sampled | |
 
 Gates and ticks are counted as in the main README: input gates are included, and ticks is the number of gates on
 the longest path, both ends included. Up to 32 bit every input was tried (4.3 billion at 32 bit); 64 bit was

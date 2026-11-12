@@ -1,0 +1,35 @@
+{
+  "authors": [
+    "byggmesterPRO"
+  ],
+  "date": "2026-11-10",
+  "family": "demultiplexer",
+  "gates": 15,
+  "notes": "Generator design: flat.",
+  "optimal": "best-known",
+  "pins": {
+    "inputs": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "outputs": [
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14
+    ]
+  },
+  "profile": "efficient",
+  "size": "8bit",
+  "source": "generator",
+  "ticks": 3,
+  "verified": "exhaustive",
+  "version": "1.0",
+  "workshop": ""
+}

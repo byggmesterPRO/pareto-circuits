@@ -2,8 +2,8 @@
 
     python tools/workshop/cards.py            every build slot
     python tools/workshop/cards.py adder      one family
-    python tools/workshop/cards.py --balanced the balanced builds too (left out for now: only fast and small
-                                              go on the Workshop)
+    python tools/workshop/cards.py --efficient the efficient builds too (left out for now: only fast and
+                                               small go on the Workshop)
 
 For each slot under circuits/<family>/builds/ this writes, from meta.json and blueprint.json:
 
@@ -21,7 +21,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[2]
 REPO = "github.com/byggmesterPRO/pareto-circuits"
-PROFILES = {"fast": "fewest ticks", "small": "fewest gates", "balanced": "lowest gates x ticks"}
+PROFILES = {"fast": "fewest ticks", "small": "fewest gates", "efficient": "lowest gates x ticks"}
 
 
 def x(a, b=None):
@@ -276,7 +276,7 @@ def icon(slot, meta):
 
 def main():
     only = [a for a in sys.argv[1:] if not a.startswith("--")]
-    profiles = ("fast", "small", "balanced") if "--balanced" in sys.argv else ("fast", "small")
+    profiles = ("fast", "small", "efficient") if "--efficient" in sys.argv else ("fast", "small")
     done = 0
     for meta_path in sorted((ROOT / "circuits").glob("*/builds/*/*/meta.json")):
         meta = json.loads(meta_path.read_text())

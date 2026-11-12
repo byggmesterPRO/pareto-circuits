@@ -2,7 +2,7 @@
 
 AI-optimized logic circuits for Scrap Mechanic.
 
-For every circuit we search for the best trade-offs between speed (ticks) and size (gate count), and publish three builds of it: the fastest, the smallest, and a balanced one. A circuit is Pareto optimal when no other circuit beats it on both at once, which is where the name comes from.
+For every circuit we search for the best trade-offs between speed (ticks) and size (gate count), and publish three builds of it: the fastest, the smallest, and the most efficient one (lowest gates x ticks). A circuit is Pareto optimal when no other circuit beats it on both at once, which is where the name comes from.
 
 The core of the project is **generators**: functions that build a whole circuit family at any size from parameters. The blueprints in this repo and on the Steam Workshop are generated from them at the standard sizes (2, 4, 8, 16, 32 and 64 bit). Later the generators go into a mod, so anyone can make the size they need in game.
 
@@ -69,14 +69,15 @@ circuits/double-dabble/builds/16bit/fast/
 |---|---|---|
 | `fast` | Fewest ticks | Fewer gates |
 | `small` | Fewest gates | Fewer ticks |
-| `balanced` | Lowest gates × ticks | Fewer ticks |
+| `efficient` | Lowest gates × ticks | Fewer ticks |
 
 If the same build wins two profiles, save it in both slots.
 
-The `balanced` profile is not what the game's players call a balanced circuit. That is a circuit where every
-path from an input to an output is the same number of ticks, so that the inputs can change every tick.
-`pareto pick --balanced` makes those, and `pareto frontier` lists every design worth having, not just three
-(see `tools/pareto/README.md`).
+`efficient` was called `balanced` until November 2026. It was renamed because **balanced** already means
+something to the game's players: a circuit where every path from an input to an output is the same number of
+ticks, so that the inputs can change every tick and a result comes out every tick. That is the only meaning
+of the word here now. `pareto pick --balanced` makes a balanced build of any design by adding timers, and
+`pareto frontier` lists every design worth having, not just three (see `tools/pareto/README.md`).
 
 ### How we count
 

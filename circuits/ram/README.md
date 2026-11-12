@@ -47,16 +47,16 @@ A tick is counted from the moment an input is driven, so the input gate itself i
 |---|---|---|---|---|---|---|---|
 | 16x4bit | fast | v1.0 | 213 | 4 | direct | sampled | |
 | 16x4bit | small | v1.0 | 213 | 4 | direct | sampled | |
-| 16x4bit | balanced | v1.0 | 213 | 4 | direct | sampled | |
+| 16x4bit | efficient | v1.0 | 213 | 4 | direct | sampled | |
 | 16x8bit | fast | v1.0 | 417 | 4 | direct | sampled | |
 | 16x8bit | small | v1.0 | 417 | 4 | direct | sampled | |
-| 16x8bit | balanced | v1.0 | 417 | 4 | direct | sampled | |
+| 16x8bit | efficient | v1.0 | 417 | 4 | direct | sampled | |
 | 64x8bit | fast | v1.0 | 1606 | 4 | direct | sampled | |
 | 64x8bit | small | v1.0 | 1606 | 4 | direct | sampled | |
-| 64x8bit | balanced | v1.0 | 1606 | 4 | direct | sampled | |
+| 64x8bit | efficient | v1.0 | 1606 | 4 | direct | sampled | |
 | 256x8bit | fast | v1.0 | 6346 | 5 | direct | sampled | |
 | 256x8bit | small | v1.0 | 6346 | 5 | direct | sampled | |
-| 256x8bit | balanced | v1.0 | 6346 | 5 | direct | sampled | |
+| 256x8bit | efficient | v1.0 | 6346 | 5 | direct | sampled | |
 
 Gates include the input gates. The three profiles hold the same build where one design wins all of them.
 Checked on the tick simulator: 3000 rounds of a random address and data, with and without a write, on 64 copies at once, against a model.

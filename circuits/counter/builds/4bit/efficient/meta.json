@@ -1,0 +1,29 @@
+{
+  "authors": [
+    "byggmesterPRO"
+  ],
+  "date": "2026-11-10",
+  "family": "counter",
+  "gates": 13,
+  "notes": "Generator design: toggle. Ticks from an input to the outputs: 0. From a pulse to the outputs: 3. Inputs steady before a pulse: 1.",
+  "optimal": "best-known",
+  "pins": {
+    "inputs": [
+      0,
+      1
+    ],
+    "outputs": [
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "profile": "efficient",
+  "size": "4bit",
+  "source": "generator",
+  "ticks": 3,
+  "verified": "sampled",
+  "version": "1.0",
+  "workshop": ""
+}

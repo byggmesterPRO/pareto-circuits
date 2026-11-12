@@ -29,22 +29,22 @@ A tick is counted from the moment an input is driven, so the input gate itself i
 |---|---|---|---|---|---|---|---|
 | 2bit | fast | v1.0 | 7 | 3 | toggle | sampled | |
 | 2bit | small | v1.0 | 7 | 3 | toggle | sampled | |
-| 2bit | balanced | v1.0 | 7 | 3 | toggle | sampled | |
+| 2bit | efficient | v1.0 | 7 | 3 | toggle | sampled | |
 | 4bit | fast | v1.0 | 13 | 3 | toggle | sampled | |
 | 4bit | small | v1.0 | 13 | 3 | toggle | sampled | |
-| 4bit | balanced | v1.0 | 13 | 3 | toggle | sampled | |
+| 4bit | efficient | v1.0 | 13 | 3 | toggle | sampled | |
 | 8bit | fast | v1.0 | 25 | 3 | toggle | sampled | |
 | 8bit | small | v1.0 | 25 | 3 | toggle | sampled | |
-| 8bit | balanced | v1.0 | 25 | 3 | toggle | sampled | |
+| 8bit | efficient | v1.0 | 25 | 3 | toggle | sampled | |
 | 16bit | fast | v1.0 | 49 | 3 | toggle | sampled | |
 | 16bit | small | v1.0 | 49 | 3 | toggle | sampled | |
-| 16bit | balanced | v1.0 | 49 | 3 | toggle | sampled | |
+| 16bit | efficient | v1.0 | 49 | 3 | toggle | sampled | |
 | 32bit | fast | v1.0 | 97 | 3 | toggle | sampled | |
 | 32bit | small | v1.0 | 97 | 3 | toggle | sampled | |
-| 32bit | balanced | v1.0 | 97 | 3 | toggle | sampled | |
+| 32bit | efficient | v1.0 | 97 | 3 | toggle | sampled | |
 | 64bit | fast | v1.0 | 193 | 3 | toggle | sampled | |
 | 64bit | small | v1.0 | 193 | 3 | toggle | sampled | |
-| 64bit | balanced | v1.0 | 193 | 3 | toggle | sampled | |
+| 64bit | efficient | v1.0 | 193 | 3 | toggle | sampled | |
 
 Gates include the input gates. The three profiles hold the same build where one design wins all of them.
 Checked on the tick simulator: 3000 rounds of count, reset or nothing, on 64 copies at once, against a model. That reaches counts of about

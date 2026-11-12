@@ -6,7 +6,7 @@ Runs the generators, measures what they make, and writes build slots.
 cargo build --release
 target/release/pareto designs adder 16bit           # every design for this size, checked and counted
 target/release/pareto netlist adder 16bit lookahead out.json
-target/release/pareto build adder 16bit             # which design wins fast, small and balanced
+target/release/pareto build adder 16bit             # which design wins fast, small and efficient
 target/release/pareto build-all adder --write --authors yourname
 target/release/pareto frontier adder 64bit          # the designs nothing beats on both gates and ticks
 target/release/pareto pick adder 13bit --balanced --max-ticks 8 --out my-adder
@@ -20,7 +20,7 @@ Run it from inside the repo.
 2. Each design is checked on every input by `logic-sim` (sampled above 32 input bits) and its gates and ticks
    are counted. A design that is wrong, or that the game could not build, stops the run.
 3. Each profile goes to the design that wins by the main README's rule: `fast` is fewest ticks, `small` is
-   fewest gates, `balanced` is lowest gates x ticks.
+   fewest gates, `efficient` is lowest gates x ticks.
 4. With `--write`, a winner is written into its slot only if it beats what is there. The version goes up
    (major if the ticks changed, minor otherwise), the `localId` is kept, and the written slot is read back and
    checked once more.

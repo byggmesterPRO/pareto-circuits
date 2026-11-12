@@ -17,19 +17,19 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 |---|---|---|---|---|---|---|---|
 | 2bit | fast | v1.0 | 15 | 3 | normal-form | exhaustive | |
 | 2bit | small | v1.0 | 15 | 3 | normal-form | exhaustive | |
-| 2bit | balanced | v1.0 | 15 | 3 | normal-form | exhaustive | |
+| 2bit | efficient | v1.0 | 15 | 3 | normal-form | exhaustive | |
 | 4bit | fast | v1.0 | 157 | 3 | normal-form | exhaustive | |
 | 4bit | small | v1.0 | 64 | 27 | ripple | exhaustive | |
-| 4bit | balanced | v1.0 | 157 | 3 | normal-form | exhaustive | |
+| 4bit | efficient | v1.0 | 157 | 3 | normal-form | exhaustive | |
 | 8bit | fast | v1.0 | 315 | 48 | lookahead | exhaustive | |
 | 8bit | small | v1.0 | 224 | 83 | ripple | exhaustive | |
-| 8bit | balanced | v1.0 | 315 | 48 | lookahead | exhaustive | |
+| 8bit | efficient | v1.0 | 315 | 48 | lookahead | exhaustive | |
 | 16bit | fast | v1.0 | 1527 | 96 | lookahead | exhaustive | |
 | 16bit | small | v1.0 | 832 | 291 | ripple | exhaustive | |
-| 16bit | balanced | v1.0 | 1197 | 108 | two-level-4 | exhaustive | |
+| 16bit | efficient | v1.0 | 1197 | 108 | two-level-4 | exhaustive | |
 | 32bit | fast | v1.0 | 8717 | 192 | lookahead | sampled | |
 | 32bit | small | v1.0 | 3200 | 1091 | ripple | sampled | |
-| 32bit | balanced | v1.0 | 5369 | 220 | two-level-4 | sampled | |
+| 32bit | efficient | v1.0 | 5369 | 220 | two-level-4 | sampled | |
 
 Gates include the input gates. Up to 16 bit every input was tried. 32 bit was checked on about a million inputs: random ones, divisors of
 every length, and numbers just below, at and just above a multiple of the divisor. None has been tested in the game yet.

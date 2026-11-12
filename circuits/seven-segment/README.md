@@ -25,7 +25,7 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 |---|---|---|---|---|---|---|---|
 | 4bit | fast | v1.0 | 22 | 3 | normal-form | exhaustive | |
 | 4bit | small | v1.0 | 18 | 8 | searched-small | exhaustive | |
-| 4bit | balanced | v1.0 | 22 | 3 | normal-form | exhaustive | |
+| 4bit | efficient | v1.0 | 22 | 3 | normal-form | exhaustive | |
 
 Gates include the input gates. All 16 digits were tried. None has been tested in the game yet.
 

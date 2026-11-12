@@ -1,0 +1,39 @@
+{
+  "authors": [
+    "byggmesterPRO"
+  ],
+  "date": "2026-11-10",
+  "family": "multiplier",
+  "gates": 112,
+  "notes": "Generator design: normal-form.",
+  "optimal": "best-known",
+  "pins": {
+    "inputs": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "outputs": [
+      8,
+      11,
+      16,
+      26,
+      49,
+      76,
+      104,
+      111
+    ]
+  },
+  "profile": "efficient",
+  "size": "4bit",
+  "source": "generator",
+  "ticks": 3,
+  "verified": "exhaustive",
+  "version": "1.0",
+  "workshop": ""
+}

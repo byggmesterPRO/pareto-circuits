@@ -20,22 +20,22 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 |---|---|---|---|---|---|---|---|
 | 2bit | fast | v1.0 | 10 | 4 | ripple | exhaustive | |
 | 2bit | small | v1.0 | 10 | 4 | ripple | exhaustive | |
-| 2bit | balanced | v1.0 | 10 | 4 | ripple | exhaustive | |
+| 2bit | efficient | v1.0 | 10 | 4 | ripple | exhaustive | |
 | 4bit | fast | v1.0 | 26 | 4 | lookahead | exhaustive | |
 | 4bit | small | v1.0 | 22 | 8 | ripple | exhaustive | |
-| 4bit | balanced | v1.0 | 26 | 4 | lookahead | exhaustive | |
+| 4bit | efficient | v1.0 | 26 | 4 | lookahead | exhaustive | |
 | 8bit | fast | v1.0 | 68 | 4 | lookahead | exhaustive | |
 | 8bit | small | v1.0 | 46 | 16 | ripple | exhaustive | |
-| 8bit | balanced | v1.0 | 68 | 4 | lookahead | exhaustive | |
+| 8bit | efficient | v1.0 | 68 | 4 | lookahead | exhaustive | |
 | 16bit | fast | v1.0 | 200 | 4 | lookahead | exhaustive | |
 | 16bit | small | v1.0 | 94 | 32 | ripple | exhaustive | |
-| 16bit | balanced | v1.0 | 200 | 4 | lookahead | exhaustive | |
+| 16bit | efficient | v1.0 | 200 | 4 | lookahead | exhaustive | |
 | 32bit | fast | v1.0 | 659 | 4 | lookahead | sampled | |
 | 32bit | small | v1.0 | 190 | 64 | ripple | sampled | |
-| 32bit | balanced | v1.0 | 327 | 6 | two-level-8 | sampled | |
+| 32bit | efficient | v1.0 | 327 | 6 | two-level-8 | sampled | |
 | 64bit | fast | v1.0 | 2474 | 4 | lookahead | sampled | |
 | 64bit | small | v1.0 | 382 | 128 | ripple | sampled | |
-| 64bit | balanced | v1.0 | 783 | 6 | two-level-8 | sampled | |
+| 64bit | efficient | v1.0 | 783 | 6 | two-level-8 | sampled | |
 
 Gates include the input gates. Up to 16 bit every input was tried (4.3 billion at 16 bit). At 32 and 64 bit
 there are too many, so they were checked on about a million inputs: random ones, edge cases, and every carry

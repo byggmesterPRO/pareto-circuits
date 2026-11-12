@@ -24,7 +24,7 @@ LINK = "https://github.com/byggmesterPRO/pareto-circuits"
 
 
 def score(profile, gates, ticks):
-    return {"fast": (ticks, gates), "small": (gates, ticks), "balanced": (gates * ticks, ticks)}[profile]
+    return {"fast": (ticks, gates), "small": (gates, ticks), "efficient": (gates * ticks, ticks)}[profile]
 
 
 def main():
@@ -32,7 +32,7 @@ def main():
     ap.add_argument("netlist")
     ap.add_argument("family")
     ap.add_argument("size")
-    ap.add_argument("profile", choices=["fast", "small", "balanced"])
+    ap.add_argument("profile", choices=["fast", "small", "efficient"])
     ap.add_argument("--source", default="search", choices=["generator", "search", "manual"])
     ap.add_argument("--authors", default="")
     ap.add_argument("--notes", default="")

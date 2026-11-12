@@ -18,22 +18,22 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 |---|---|---|---|---|---|---|---|
 | 2bit | fast | v1.0 | 5 | 3 | flat | exhaustive | |
 | 2bit | small | v1.0 | 5 | 3 | flat | exhaustive | |
-| 2bit | balanced | v1.0 | 5 | 3 | flat | exhaustive | |
+| 2bit | efficient | v1.0 | 5 | 3 | flat | exhaustive | |
 | 4bit | fast | v1.0 | 9 | 3 | flat | exhaustive | |
 | 4bit | small | v1.0 | 9 | 3 | flat | exhaustive | |
-| 4bit | balanced | v1.0 | 9 | 3 | flat | exhaustive | |
+| 4bit | efficient | v1.0 | 9 | 3 | flat | exhaustive | |
 | 8bit | fast | v1.0 | 15 | 3 | flat | exhaustive | |
 | 8bit | small | v1.0 | 15 | 3 | flat | exhaustive | |
-| 8bit | balanced | v1.0 | 15 | 3 | flat | exhaustive | |
+| 8bit | efficient | v1.0 | 15 | 3 | flat | exhaustive | |
 | 16bit | fast | v1.0 | 25 | 3 | flat | exhaustive | |
 | 16bit | small | v1.0 | 25 | 3 | flat | exhaustive | |
-| 16bit | balanced | v1.0 | 25 | 3 | flat | exhaustive | |
+| 16bit | efficient | v1.0 | 25 | 3 | flat | exhaustive | |
 | 32bit | fast | v1.0 | 43 | 3 | flat | exhaustive | |
 | 32bit | small | v1.0 | 43 | 3 | flat | exhaustive | |
-| 32bit | balanced | v1.0 | 43 | 3 | flat | exhaustive | |
+| 32bit | efficient | v1.0 | 43 | 3 | flat | exhaustive | |
 | 64bit | fast | v1.0 | 77 | 3 | flat | exhaustive | |
 | 64bit | small | v1.0 | 77 | 3 | flat | exhaustive | |
-| 64bit | balanced | v1.0 | 77 | 3 | flat | exhaustive | |
+| 64bit | efficient | v1.0 | 77 | 3 | flat | exhaustive | |
 
 Gates include the input gates. Every input was tried at every size. None has been tested in the game yet.
 
