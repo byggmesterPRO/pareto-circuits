@@ -7,7 +7,7 @@
     python tools/workshop/upload.py --user <steam login> --update             also re-upload builds that are already posted
 
 Run `python tools/workshop/cards.py` first: this posts the description and icon.png that are in each slot.
-Only fast and small builds are posted, unless --balanced is given.
+Only fast and small builds are posted, unless --efficient is given.
 
 What it does for each build: writes a SteamCMD item file, runs `steamcmd +login <user> +workshop_build_item`,
 reads the item id Steam gives back, and stores it in the slot (meta.json `workshop`, description.json `fileId`)
@@ -71,7 +71,7 @@ def main():
             return v
         return default
 
-    dry, public, update, balanced = flag("--dry-run"), flag("--public"), flag("--update"), flag("--balanced")
+    dry, public, update, efficient = flag("--dry-run"), flag("--public"), flag("--update"), flag("--efficient")
     user, limit = value("--user"), int(value("--limit", "0"))
     steamcmd = value("--steamcmd") or shutil.which("steamcmd")
     families = args
@@ -87,7 +87,7 @@ def main():
         desc = json.loads((slot / "blueprint" / "description.json").read_text())
         if families and meta["family"] not in families:
             continue
-        if meta["profile"] == "balanced" and not balanced:
+        if meta["profile"] == "efficient" and not efficient:
             continue
         if not (slot / "blueprint" / "icon.png").exists():
             sys.exit(f"{slot} has no icon.png; run tools/workshop/cards.py first")
