@@ -6,8 +6,10 @@
 //! 2. At most one pulse input (write, count, reset) is turned on for exactly one tick.
 //! 3. The circuit is left until nothing changes, and the outputs must be what the model says.
 //!
-//! The delays are measured on the way: a tick is counted from the moment an input is driven, so the input
-//! gate itself is the first tick, the same way the main README counts ticks for circuits without memory.
+//! The delays are measured on the way, physically: a tick is counted from the moment an input gate is
+//! driven, so the input gate itself is the first tick. The repo does not count that tick, and
+//! `verify::verify` takes it off before it reports them. `pace` is about gaps between inputs, which have the
+//! input gate's tick at both ends, so its numbers are the same either way.
 //!
 //! That gives every operation all the time it wants. `pace` asks the other question: how often can operations
 //! come. An operation there is a fixed number of ticks, the period: the level inputs change at its start, the

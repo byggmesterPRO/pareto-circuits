@@ -31,6 +31,9 @@ A <circuit> is a build slot folder, a blueprint.json or a netlist.json.
 Balanced means every path from an input to an output is the same number of ticks, so the inputs can change
 every tick. A timer set to d counts as d + 1 gates in a row.
 
+Gates and ticks are counted as the repo README counts them: the input gates are not gates, and their tick
+is not a tick. The blueprint has them all the same, so it can be wired to; input_gates says how many.
+
 verify, equal, check, delay, stream and balance are for circuits without memory. Circuits with memory or
 loops are tested with run. See README.md for the request format of serve.";
 

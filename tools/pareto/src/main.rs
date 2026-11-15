@@ -11,6 +11,11 @@
 //! form: `logic_sim::balance` pads it with timers. That search takes a while, so `build` does not do it, and
 //! a design it fails for is still measured as it is, only without a balanced form.
 //!
+//! Gates and ticks here are counted the way the repo README counts them: the input gates are not gates, and
+//! their tick is not a tick (`Circuit::counted_gates`, `Circuit::counted_ticks`). The blueprints still have
+//! the input gates, and the simulator still drives them, so only what is reported, stored, compared or
+//! scored uses the counted numbers.
+//!
 //! Whether a family has memory is not asked here by name. `logic_sim::verify` checks and measures a design
 //! of either kind, and what differs after that (no balanced form, more delays than one) is read off the
 //! family's spec and the measurement.
@@ -20,7 +25,7 @@ mod frontier;
 use frontier::{Point, Wish};
 use logic_sim::balance::balance;
 use logic_sim::build::{Design, Netlist};
-use logic_sim::circuit::load;
+use logic_sim::circuit::{load, uncount};
 use logic_sim::families::{spec, FAMILIES, MACHINES};
 use logic_sim::stream::stream;
 use logic_sim::validate::validate;
@@ -124,9 +129,9 @@ impl Measured {
         }
     }
 
-    /// Gates plus timers of the balanced form.
+    /// Gates plus timers of the balanced form, counted: the input gates are not in it.
     fn balanced_size(&self) -> Option<u64> {
-        self.balanced.as_ref().map(|b| (b.gates.len() + b.inputs + b.timers.len()) as u64)
+        self.balanced.as_ref().map(|b| (b.gates.len() + b.timers.len()) as u64)
     }
 
     fn point(&self) -> Point {
@@ -138,7 +143,7 @@ impl Measured {
 const STREAM_STEPS: usize = 500;
 
 /// The balanced form of a design that was checked already: timers added, nothing else changed, every path
-/// the same number of ticks, and right on inputs that change every tick.
+/// the same number of ticks, and right on inputs that change every tick. `ticks` is counted.
 fn balanced_form(net: &Netlist, ticks: u64) -> Result<Netlist, String> {
     let b = balance(net, None)?;
     let mut plain = net.clone();
@@ -148,7 +153,7 @@ fn balanced_form(net: &Netlist, ticks: u64) -> Result<Netlist, String> {
         return Err("balancing changed more than the timers".into());
     }
     let c = b.circuit();
-    if !c.balance().is_some_and(|x| x.balanced && x.longest as u64 == ticks) {
+    if !c.balance().is_some_and(|x| x.balanced && uncount(x.longest) as u64 == ticks) {
         return Err(format!("not every path is {ticks} ticks after balancing"));
     }
     let res = stream(&c, STREAM_STEPS, 0x5EED)?;
@@ -194,7 +199,7 @@ fn measure(fam: &str, size: &str, d: Design, balanced: bool, pace: bool) -> Resu
     } else {
         balanced_form(&d.netlist, res.ticks).map_err(|e| eprintln!("warning: {fam} {size} {}: no balanced form: {e}", d.name)).ok()
     };
-    Ok(Measured { note, timing: t, name: d.name, netlist: d.netlist, gates: c.gates() as u64, ticks: res.ticks, verified: res.verified(), balanced })
+    Ok(Measured { note, timing: t, name: d.name, netlist: d.netlist, gates: c.counted_gates() as u64, ticks: res.ticks, verified: res.verified(), balanced })
 }
 
 /// Lower wins.
@@ -296,7 +301,7 @@ fn write_slot(slot: &Path, fam: &str, size: &str, profile: &str, m: &Measured, a
     // read the slot back the way the verifier does and check it once more
     let (c, _) = load(slot, None)?;
     let res = verify(&c, &spec(fam, size)?, threads(), false)?;
-    if res.wrong > 0 || c.gates() as u64 != m.gates || res.ticks != m.ticks {
+    if res.wrong > 0 || c.counted_gates() as u64 != m.gates || res.ticks != m.ticks {
         return Err(format!("the slot written to {} does not check out", slot.display()));
     }
     Ok(version)
@@ -364,10 +369,10 @@ fn write_pick(dir: &Path, fam: &str, size: &str, m: &Measured, balanced: bool) -
     fs::write(dir.join("description.json"), serde_json::to_string_pretty(&desc).unwrap() + "\n").map_err(err)?;
     let (c, _) = load(&dir.join("blueprint.json"), Some(&pins))?;
     let res = verify(&c, &spec(fam, size)?, threads(), false)?;
-    if res.wrong > 0 || c.gates() as u64 != m.gates || c.timers() != timers || !validate(&c).problems.is_empty() {
+    if res.wrong > 0 || c.counted_gates() as u64 != m.gates || c.timers() != timers || !validate(&c).problems.is_empty() {
         return Err(format!("the blueprint written to {} does not check out", dir.display()));
     }
-    if balanced && !(c.balance().is_some_and(|b| b.balanced && b.longest as u64 == m.ticks) && stream(&c, STREAM_STEPS, 0x5EED)?.wrong == 0) {
+    if balanced && !(c.balance().is_some_and(|b| b.balanced && uncount(b.longest) as u64 == m.ticks) && stream(&c, STREAM_STEPS, 0x5EED)?.wrong == 0) {
         return Err(format!("the blueprint written to {} is not balanced", dir.display()));
     }
     Ok(())
@@ -512,12 +517,14 @@ mod tests {
             let t = measured(fam, size, false, true).unwrap().remove(0).timing;
             (t.read, t.write.unwrap(), t.setup.unwrap(), t.period.unwrap(), t.pulse_at.unwrap())
         };
-        assert_eq!(pace("counter", "8bit"), (0, 3, 1, 3, 0));
-        assert_eq!(pace("register", "8bit"), (0, 3, 2, 4, 1));
-        assert_eq!(pace("ram", "16x4bit"), (4, 5, 5, 9, 4));
+        // read, write and setup without the input gate's tick; period and pulse_at are gaps and keep it at both ends
+        assert_eq!(pace("counter", "8bit"), (0, 2, 0, 3, 0));
+        assert_eq!(pace("register", "8bit"), (0, 2, 1, 4, 1));
+        assert_eq!(pace("ram", "16x4bit"), (3, 4, 4, 9, 4));
         assert!(best("ram", "16x4bit", &Wish { balanced: true, ..Wish::default() }).is_err());
         assert!(best("ram", "16x4bit", &Wish { max_period: Some(8), ..Wish::default() }).is_err());
-        assert_eq!(best("ram", "16x4bit", &Wish { max_period: Some(9), max_read: Some(4), ..Wish::default() }).unwrap().name, "direct");
+        assert_eq!(best("ram", "16x4bit", &Wish { max_period: Some(9), max_read: Some(3), ..Wish::default() }).unwrap().name, "direct");
+        assert!(best("ram", "16x4bit", &Wish { max_period: Some(9), max_read: Some(2), ..Wish::default() }).is_err());
         assert!(best("adder", "4bit", &Wish { max_write: Some(9), ..Wish::default() }).is_err());
         let mut d = designs("register", "4bit").unwrap().remove(0);
         let g = d.netlist.gates.iter().position(|(m, _)| *m == 0).unwrap();

@@ -43,7 +43,18 @@ pub struct Circuit {
     pub outputs: Vec<Option<u32>>,
 }
 
-/// The shortest and the longest path from an input to an output, in ticks. Balanced when they are the same.
+/// The tick an input gate takes. The simulator drives the input gates, so every delay it measures has this
+/// tick in it; the repo does not count it (see "How we count" in the README).
+pub const INPUT_TICKS: u32 = 1;
+
+/// A physical delay, measured from driving an input gate, as the repo counts it: without the input gate's
+/// tick, and never below 0.
+pub fn uncount(physical: u32) -> u32 {
+    physical.saturating_sub(INPUT_TICKS)
+}
+
+/// The shortest and the longest path from an input to an output, in physical ticks (the input gate is tick
+/// 1). Balanced when they are the same. Use `uncount` on them for what the repo reports.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Balance {
     pub balanced: bool,
@@ -75,9 +86,24 @@ impl Circuit {
         r
     }
 
-    /// Every logic gate, input and output gates included.
+    /// Every logic gate in the circuit as built, input and output gates included. This is the physical
+    /// count; what the repo reports is `counted_gates`.
     pub fn gates(&self) -> usize {
         self.kind.iter().filter(|k| matches!(k, Kind::Gate(_))).count()
+    }
+
+    /// The input pins that are logic gates (the yellow input gates of a blueprint), each counted once.
+    pub fn input_gates(&self) -> usize {
+        let mut pins: Vec<u32> = self.inputs.iter().copied().filter(|&e| matches!(self.kind[e as usize], Kind::Gate(_))).collect();
+        pins.sort_unstable();
+        pins.dedup();
+        pins.len()
+    }
+
+    /// Gates as the repo README counts them: every logic gate except the input gates. An input is a switch
+    /// or button the player wires to whatever needs it, so its gate is not part of the circuit's cost.
+    pub fn counted_gates(&self) -> usize {
+        self.gates() - self.input_gates()
     }
 
     /// Elements in an order where each comes after everything it reads. None if there is a feedback loop.
@@ -156,15 +182,22 @@ impl Circuit {
         Some(a)
     }
 
-    /// Ticks as the repo README counts them: gates on the longest path from an input to an output, both ends
-    /// included, with a timer counted as its setting + 1 gates. None for a circuit with memory, where the
-    /// family README defines ticks.
+    /// Physical ticks: parts on the longest path from an input to an output, the input gate and the output
+    /// included, with a timer counted as its setting + 1. This is the delay the simulator sees from driving an
+    /// input gate; what the repo reports is `counted_ticks`. None for a circuit with memory, where the family
+    /// README defines ticks.
     pub fn ticks(&self) -> Option<u32> {
         if !self.feed_forward() {
             return None;
         }
         let a = self.arrivals()?;
         self.outputs.iter().flatten().filter_map(|&o| a[o as usize]).map(|(_, hi)| hi).max()
+    }
+
+    /// Ticks as the repo README counts them: the physical ticks without the tick of the input gate. An
+    /// output that is itself an input pin has 0.
+    pub fn counted_ticks(&self) -> Option<u32> {
+        self.ticks().map(uncount)
     }
 
     /// Is the circuit balanced: is every path from an input to an output the same number of ticks. Then all

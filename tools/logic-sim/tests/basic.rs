@@ -25,7 +25,9 @@ fn on(sim: &Sim, e: u32) -> bool {
 fn half_adder_every_input() {
     let net = json!({"inputs": 2, "gates": [[2, [0, 1]], [0, [0, 1]]], "outputs": [2, 3]});
     let c = Circuit::from_netlist(&net).unwrap();
+    // physically 4 gates and 2 ticks; counted without the 2 input gates and their tick
     assert_eq!((c.gates(), c.ticks()), (4, Some(2)));
+    assert_eq!((c.input_gates(), c.counted_gates(), c.counted_ticks()), (2, 2, Some(1)));
     let res = check(&c, &Expect::Function(&|x| ((x & 1) ^ (x >> 1)) as u128 | (((x & 1) & (x >> 1)) as u128) << 1), 2, &[]).unwrap();
     assert!(res.exhaustive && res.tested == 4 && res.wrong == 0);
     // a wrong reference: inputs 2 and 3 now disagree
@@ -47,7 +49,8 @@ fn nor_latch_remembers() {
     let bp = blueprint(vec![gate(0, 1, &[3], 0), gate(1, 1, &[2], 1), gate(2, 4, &[3], 2), gate(3, 4, &[2], 3)]);
     let pins = json!({"inputs": [0, 1], "outputs": [2, 3]});
     let c = Circuit::from_blueprint(&bp, Some(&pins)).unwrap();
-    assert_eq!(c.ticks(), None);
+    assert_eq!((c.ticks(), c.counted_ticks()), (None, None));
+    assert_eq!(c.counted_gates(), 2);
     let run = script::run(&c, "set in0 1\ntick 4\ncheck out0 1\nset in0 0\ntick 4\ncheck out0 1   // still set\nset in1 1\ntick 4\ncheck out0 0\nset in1 0\ntick 4\ncheck out0 0\ncheck out1 1").unwrap();
     assert_eq!((run.correct, run.total), (5, 5));
 }
@@ -129,6 +132,7 @@ fn blueprint_parts_in_any_order() {
     let c = Circuit::from_blueprint(&bp, Some(&json!({"inputs": [1, 2], "outputs": [9]}))).unwrap();
     assert_eq!(check(&c, &Expect::Function(&|x| (x == 3) as u128), 1, &[]).unwrap().wrong, 0);
     assert_eq!((c.gates(), c.ticks()), (3, Some(2)));
+    assert_eq!((c.counted_gates(), c.counted_ticks()), (1, Some(1)));
 }
 
 #[test]
@@ -138,6 +142,8 @@ fn more_than_64_output_bits() {
     let c = Circuit::from_netlist(&json!({"inputs": 64, "gates": [], "outputs": outs})).unwrap();
     let res = check(&c, &Expect::Function(&|x| x & u64::MAX as u128 | (x & u64::MAX as u128) << 64), 4, &[]).unwrap();
     assert!(!res.exhaustive && res.wrong == 0 && res.tested > 900_000);
+    // an output that is an input pin: one physical tick, the input gate's, and 0 counted; no gates counted
+    assert_eq!((c.gates(), c.ticks(), c.counted_gates(), c.counted_ticks()), (64, Some(1), 0, Some(0)));
     let res = check(&c, &Expect::Function(&|x| x & u64::MAX as u128 | ((x ^ 1) & u64::MAX as u128) << 64), 4, &[]).unwrap();
     assert_eq!(res.wrong, res.tested);
 }
@@ -242,6 +248,8 @@ fn blueprint_round_trip() {
     let (bp, pins) = net.blueprint();
     let c = Circuit::from_blueprint(&bp, Some(&pins)).unwrap();
     assert_eq!((c.gates(), c.ticks()), (4, Some(2)));
+    // the blueprint keeps its input gates; they are just not counted
+    assert_eq!((c.input_gates(), c.counted_gates(), c.counted_ticks()), (2, 2, Some(1)));
     assert_eq!(check(&c, &Expect::Circuit(&net.circuit()), 1, &[]).unwrap().wrong, 0);
     assert!(logic_sim::validate::validate(&c).warnings.is_empty());
 }
@@ -258,6 +266,7 @@ fn a_timer_set_to_d_is_d_plus_one_gates() {
         let c = Circuit::from_netlist(&json!({"inputs": 1, "gates": row, "timers": [[0, d]], "outputs": [last, timer]})).unwrap();
         assert_eq!(c.kind[timer as usize], Kind::Timer(d));
         assert_eq!(c.ticks(), Some(d + 2));
+        assert_eq!(c.counted_ticks(), Some(d + 1));
         assert!(c.balance().unwrap().balanced);
         let mut sim = Sim::new(&c, 64);
         let mut s = 0x1234_5678_9ABC_DEF1u64 + d as u64;
@@ -384,6 +393,7 @@ fn one_long_path_is_enough_to_be_unbalanced() {
     let c = Circuit::from_netlist(&json!({"inputs": 2, "gates": [[0, [0, 1]], [2, [4, 2]]], "timers": [[0, 0]], "outputs": [3]})).unwrap();
     assert_eq!(c.balance().unwrap(), logic_sim::circuit::Balance { balanced: true, shortest: 3, longest: 3 });
     assert_eq!((c.gates(), c.timers(), c.ticks()), (4, 1, Some(3)));
+    assert_eq!((c.counted_gates(), c.counted_ticks()), (2, Some(2)));
     // a latch has memory: balanced does not apply
     let latch = Circuit::from_netlist(&json!({"inputs": 2, "gates": [[4, [1, 3]], [4, [0, 2]]], "outputs": [2, 3]})).unwrap();
     assert_eq!(latch.balance(), None);
@@ -423,15 +433,18 @@ fn one_verify_for_both_kinds_of_family() {
     assert!(!adder.has_memory() && adder.pins() == (6, 4));
     let res = verify(&ripple3().circuit(), &adder, 2, false).unwrap();
     assert!(res.exhaustive && res.wrong == 0 && res.problem.is_none());
-    assert_eq!(res.ticks, 6);
-    assert_eq!(res.timing, Timing { read: 6, write: None, setup: None, period: Some(5), pulse_at: None });
+    // counted: the longest path is 6 ticks with the input gate, 5 without; the period is a gap and stays 5
+    assert_eq!(res.ticks, 5);
+    assert_eq!(res.timing, Timing { read: 5, write: None, setup: None, period: Some(5), pulse_at: None });
     // with memory: random operations, and a delay for each thing that can be waited for
     let register = spec("register", "2bit").unwrap();
     assert!(register.has_memory() && register.pins() == (3, 2));
     let res = verify(&register2(), &register, 2, true).unwrap();
     assert!(!res.exhaustive && res.wrong == 0 && res.problem.is_none());
-    assert_eq!(res.ticks, 3);
-    assert_eq!(res.timing, Timing { read: 0, write: Some(3), setup: Some(2), period: Some(4), pulse_at: Some(1) });
+    // counted: write and setup without the input gate's tick (3 and 2 as simulated), read stays 0 (the
+    // outputs do not move without a pulse); period and pulse_at are gaps between inputs and stay as they are
+    assert_eq!(res.ticks, 2);
+    assert_eq!(res.timing, Timing { read: 0, write: Some(2), setup: Some(1), period: Some(4), pulse_at: Some(1) });
     // how often operations can come is only looked for when asked
     let t = verify(&register2(), &register, 2, false).unwrap().timing;
     assert_eq!((t.period, t.pulse_at), (None, None));
@@ -456,4 +469,22 @@ fn how_often_a_register_can_be_written() {
         [2, [6, 8]], [2, [0, 6]], [0, [7, 2]],
     ], "outputs": [3, 6]})).unwrap();
     assert_eq!(pace(&broken, &m, 20, 7).unwrap(), None);
+}
+
+/// Replies count as the README does: no input gates, no input tick. The balancer still gets the physical
+/// delay, and a wish for ticks is counted like the reply.
+#[test]
+fn replies_count_without_the_input_gates() {
+    use logic_sim::api::handle;
+    let net = ripple3().to_json();
+    let v = handle(&json!({"cmd": "count", "circuit": net}));
+    let c = ripple3().circuit();
+    assert_eq!(v["gates"], json!(c.gates() - 6));
+    assert_eq!((v["input_gates"].clone(), v["ticks"].clone(), v["shortest_path"].clone(), v["period"].clone()), (json!(6), json!(5), json!(1), json!(5)));
+    assert_eq!(v["parts"], v["gates"]);
+    let v = handle(&json!({"cmd": "balance", "circuit": net, "ticks": 7}));
+    assert_eq!(v["problems"], json!([]));
+    assert_eq!((v["ticks"].clone(), v["shortest_path"].clone(), v["ticks_before"].clone()), (json!(7), json!(7), json!(5)));
+    assert_eq!(v["parts"], json!(v["gates"].as_u64().unwrap() + v["timers"].as_u64().unwrap()));
+    assert!(handle(&json!({"cmd": "balance", "circuit": net, "ticks": 4}))["problems"].as_array().is_some_and(|p| !p.is_empty()));
 }

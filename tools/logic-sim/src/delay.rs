@@ -3,7 +3,8 @@
 //! `ticks` (the longest path) is a guarantee that no input change can exceed. Many circuits never use their
 //! longest path, so what really happens can be lower. This jumps from one random input value to another, with
 //! all jumps running at once in the tick simulator, and reports the last tick at which any output changed.
-//! It counts like `ticks`: the input gate is tick 1. The result is a measurement, not a guarantee.
+//! It counts physically, like `Circuit::ticks`: the input gate is tick 1 (use `circuit::uncount` for what the
+//! repo reports). The result is a measurement, not a guarantee.
 
 use crate::circuit::Circuit;
 use crate::sim::Sim;

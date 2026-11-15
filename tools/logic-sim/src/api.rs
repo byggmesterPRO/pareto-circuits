@@ -11,7 +11,7 @@
 //! | count    |                                                          |
 //! | delay    | "jumps" (default 200000)                                 |
 //! | stream   | "steps" (default 2000), "every" (default 1)              |
-//! | balance  | "ticks" (default: the longest path), "out" (a file)      |
+//! | balance  | "ticks" (counted; default: the longest path), "out"      |
 //! | validate |                                                          |
 //! | run      | "script" (the text) or "script_file"                     |
 //!
@@ -22,9 +22,13 @@
 //! Values above 2^53 are given as strings, decimal or 0x hex.
 //!
 //! Every reply has "problems". An empty list means all is well.
+//!
+//! Gates and ticks in a reply are counted the way the repo README counts them: the input gates are not
+//! gates, and their tick is not a tick. "input_gates" says how many there are; the blueprint as shipped has
+//! those gates too, and its delays are one tick longer when it is driven at the input gates.
 
 use crate::check::{check, Checked, Expect};
-use crate::circuit::{from_value, load, read_pins, Circuit};
+use crate::circuit::{from_value, load, read_pins, uncount, Circuit, INPUT_TICKS};
 use crate::families::spec;
 use crate::build::Netlist;
 use crate::{balance, delay, script, stream, validate, verify};
@@ -61,17 +65,23 @@ fn circuit(v: &Value, pins: Option<&Value>) -> Result<(Circuit, Option<Value>), 
     }
 }
 
+/// What every reply with counted numbers says about the input gates.
+const SHIPPED: &str = "gates and ticks do not count the input gates; the blueprint as shipped has them, one more gate per input and one more tick";
+
 /// Gates, timers and ticks, and whether every path is the same number of ticks (see `Circuit::balance`).
+/// Counted as the README counts: `parts` is the counted gates plus the timers.
 fn counts(c: &Circuit) -> Value {
     let b = c.balance();
     json!({
-        "gates": c.gates(),
+        "gates": c.counted_gates(),
+        "input_gates": c.input_gates(),
         "timers": c.timers(),
-        "parts": c.len(),
-        "ticks": c.ticks(),
+        "parts": c.counted_gates() + c.timers(),
+        "ticks": c.counted_ticks(),
         "balanced": b.map(|b| b.balanced),
-        "shortest_path": b.map(|b| b.shortest),
+        "shortest_path": b.map(|b| uncount(b.shortest)),
         "period": b.map(|b| b.period()),
+        "note": SHIPPED,
     })
 }
 
@@ -83,10 +93,12 @@ fn report(c: &Circuit, res: Checked) -> Value {
         problems.push(format!("{} of {} test inputs give a wrong output, for example input {}", res.wrong, res.tested, res.example.unwrap_or(0)));
     }
     json!({
-        "gates": c.gates(),
+        "gates": c.counted_gates(),
+        "input_gates": c.input_gates(),
         "timers": c.timers(),
-        "ticks": c.ticks(),
+        "ticks": c.counted_ticks(),
         "balanced": c.balance().map(|b| b.balanced),
+        "note": SHIPPED,
         "verified": if res.exhaustive { "exhaustive" } else { "sampled" },
         "tested": res.tested,
         "wrong": res.wrong,
@@ -109,10 +121,12 @@ fn verify(c: &Circuit, fam: &str, size: &str, pace: bool) -> Result<Value, Strin
     problems.extend(res.problem.clone());
     let t = res.timing;
     Ok(json!({
-        "gates": c.gates(),
+        "gates": c.counted_gates(),
+        "input_gates": c.input_gates(),
         "timers": c.timers(),
         "ticks": res.ticks,
         "balanced": c.balance().map(|b| b.balanced),
+        "note": SHIPPED,
         "read": t.read,
         "write": t.write,
         "setup": t.setup,
@@ -197,7 +211,7 @@ fn run(req: &Value) -> Result<Value, String> {
             v["tested"] = json!(res.tested);
             v["wrong"] = json!(res.wrong);
             v["problems"] = match res.example {
-                Some(e) => json!([format!("{} of {} inputs, a new one every {every} ticks, give a wrong output {} ticks later: {e}", res.wrong, res.tested, res.ticks)]),
+                Some(e) => json!([format!("{} of {} inputs, a new one every {every} ticks, give a wrong output {} ticks later: {e}", res.wrong, res.tested, uncount(res.ticks))]),
                 None => json!([]),
             };
             Ok(v)
@@ -205,7 +219,8 @@ fn run(req: &Value) -> Result<Value, String> {
         "balance" => {
             need_pins()?;
             let ticks = match req.get("ticks") {
-                Some(t) => Some(t.as_u64().ok_or("\"ticks\" must be a number")? as u32),
+                // counted, like every number in a request: the balancer works with the input gate's tick in
+                Some(t) => Some(t.as_u64().ok_or("\"ticks\" must be a number")? as u32 + INPUT_TICKS),
                 None => None,
             };
             let net = balance::balance(&Netlist::from_circuit(&c)?, ticks)?;
@@ -217,8 +232,8 @@ fn run(req: &Value) -> Result<Value, String> {
                 problems.push("the balanced circuit does not check out".to_string());
             }
             let mut v = counts(&b);
-            v["gates_before"] = json!(c.gates());
-            v["ticks_before"] = json!(c.ticks());
+            v["gates_before"] = json!(c.counted_gates());
+            v["ticks_before"] = json!(c.counted_ticks());
             v["problems"] = json!(problems);
             match req["out"].as_str() {
                 Some(path) => fs::write(path, net.to_json().to_string() + "\n").map_err(|e| format!("{path}: {e}"))?,
@@ -229,11 +244,12 @@ fn run(req: &Value) -> Result<Value, String> {
         "delay" => {
             need_pins()?;
             let jumps = req["jumps"].as_u64().unwrap_or(200_000) as usize;
-            Ok(json!({ "gates": c.gates(), "ticks": c.ticks(), "worst_delay_seen": delay::worst_seen(&c, jumps, 1)?, "jumps": jumps, "problems": [] }))
+            let seen = uncount(delay::worst_seen(&c, jumps, 1)? as u32);
+            Ok(json!({ "gates": c.counted_gates(), "input_gates": c.input_gates(), "ticks": c.counted_ticks(), "worst_delay_seen": seen, "jumps": jumps, "note": SHIPPED, "problems": [] }))
         }
         "validate" => {
             let r = validate::validate(&c);
-            Ok(json!({ "gates": c.gates(), "parts": c.len(), "problems": r.problems, "warnings": r.warnings }))
+            Ok(json!({ "gates": c.counted_gates(), "input_gates": c.input_gates(), "parts": c.counted_gates() + c.timers(), "note": SHIPPED, "problems": r.problems, "warnings": r.warnings }))
         }
         "run" => {
             let text = match req["script"].as_str() {

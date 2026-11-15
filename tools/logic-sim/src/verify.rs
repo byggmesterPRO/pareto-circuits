@@ -7,15 +7,17 @@
 //! `Verified` back for both.
 
 use crate::check::check;
-use crate::circuit::Circuit;
+use crate::circuit::{uncount, Circuit};
 use crate::families::Spec;
 use crate::memory;
 
 /// Random operations a circuit with memory is checked on, over 64 copies at once.
 pub const OPERATIONS: u64 = 3000;
 
-/// A circuit's timing, in ticks. A tick is counted from the moment an input is driven, so the input gate
-/// itself is the first tick.
+/// A circuit's timing, in ticks, as the repo counts them: the tick of the input gate is not counted. Each
+/// delay is measured from the moment an input gate is driven, and the input gate's own tick is then taken
+/// off (never below 0). `period` and `pulse_at` are gaps between two inputs being driven, so they have the
+/// input gate's tick at both ends and stay as measured.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Timing {
     /// From an input changing to the outputs being right. For a family with memory: from a level input
@@ -43,8 +45,8 @@ pub struct Verified {
     pub example: Option<u128>,
     /// What is wrong, in words, if anything is.
     pub problem: Option<String>,
-    /// The one number a build's meta.json calls `ticks`: the longest path, or for a family with memory the
-    /// one of `read` and `write` its README names.
+    /// The one number a build's meta.json calls `ticks`, counted: the longest path without the input gate, or
+    /// for a family with memory the one of `read` and `write` its README names.
     pub ticks: u64,
     pub timing: Timing,
 }
@@ -66,7 +68,7 @@ pub fn verify(c: &Circuit, spec: &Spec, threads: usize, pace: bool) -> Result<Ve
     match spec {
         Spec::Function(f) => {
             let res = check(c, &f.expect(), threads, &f.hard)?;
-            let ticks = c.ticks().unwrap_or(0) as u64;
+            let ticks = c.counted_ticks().unwrap_or(0) as u64;
             let problem = (res.wrong > 0).then(|| format!("{} of {} test inputs give a wrong output, for example input {}", res.wrong, res.tested, res.example.unwrap_or(0)));
             let timing = Timing { read: ticks, write: None, setup: None, period: c.balance().map(|b| b.period() as u64), pulse_at: None };
             Ok(Verified { wrong: res.wrong, tested: res.tested, exhaustive: res.exhaustive, example: res.example, problem, ticks, timing })
@@ -76,8 +78,11 @@ pub fn verify(c: &Circuit, spec: &Spec, threads: usize, pace: bool) -> Result<Ve
             let problem = (res.wrong > 0).then(|| format!("{} of {} operations end with a wrong output: {}", res.wrong, res.operations, res.example.clone().unwrap_or_default()));
             // how often operations can come is only worth asking of a circuit that works when given time
             let pace = if pace && res.wrong == 0 { memory::pace(c, m, res.setup + res.write + 16, 0x5EED)? } else { None };
-            let timing = Timing { read: res.read, write: Some(res.write), setup: Some(res.setup), period: pace.map(|p| p.period), pulse_at: pace.map(|p| p.pulse_at) };
-            let ticks = if m.ticks_is_read { res.read } else { res.write };
+            // the simulator measures from driving an input gate; the repo does not count that tick
+            let counted = |physical: u64| uncount(physical as u32) as u64;
+            let (read, write, setup) = (counted(res.read), counted(res.write), counted(res.setup));
+            let timing = Timing { read, write: Some(write), setup: Some(setup), period: pace.map(|p| p.period), pulse_at: pace.map(|p| p.pulse_at) };
+            let ticks = if m.ticks_is_read { read } else { write };
             Ok(Verified { wrong: res.wrong, tested: res.operations, exhaustive: false, example: None, problem, ticks, timing })
         }
     }
