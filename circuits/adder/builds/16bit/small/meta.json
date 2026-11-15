@@ -2,10 +2,10 @@
   "authors": [
     "byggmesterPRO"
   ],
-  "date": "2026-11-10",
+  "date": "2026-11-15",
   "family": "adder",
-  "gates": 94,
-  "notes": "Generator design: ripple.",
+  "gates": 87,
+  "notes": "Generator design: pairs.",
   "optimal": "best-known",
   "pins": {
     "inputs": [
@@ -43,30 +43,30 @@
       31
     ],
     "outputs": [
-      32,
-      34,
-      38,
-      42,
-      46,
-      50,
-      54,
+      37,
+      33,
+      44,
+      40,
+      51,
+      47,
       58,
-      62,
-      66,
-      70,
-      74,
-      78,
-      82,
+      54,
+      65,
+      61,
+      72,
+      68,
+      79,
+      75,
       86,
-      90,
-      93
+      82,
+      85
     ]
   },
   "profile": "small",
   "size": "16bit",
   "source": "generator",
-  "ticks": 32,
+  "ticks": 34,
   "verified": "exhaustive",
-  "version": "1.0",
+  "version": "2.0",
   "workshop": ""
 }
