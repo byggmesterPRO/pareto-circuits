@@ -22,19 +22,19 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 | 2bit | small | v1.0 | 10 | 4 | ripple | exhaustive | |
 | 2bit | efficient | v1.0 | 10 | 4 | ripple | exhaustive | |
 | 4bit | fast | v1.0 | 26 | 4 | lookahead | exhaustive | |
-| 4bit | small | v1.0 | 22 | 8 | ripple | exhaustive | |
+| 4bit | small | v2.0 | 21 | 10 | pairs | exhaustive | |
 | 4bit | efficient | v1.0 | 26 | 4 | lookahead | exhaustive | |
 | 8bit | fast | v1.0 | 68 | 4 | lookahead | exhaustive | |
-| 8bit | small | v1.0 | 46 | 16 | ripple | exhaustive | |
+| 8bit | small | v2.0 | 43 | 18 | pairs | exhaustive | |
 | 8bit | efficient | v1.0 | 68 | 4 | lookahead | exhaustive | |
 | 16bit | fast | v1.0 | 200 | 4 | lookahead | exhaustive | |
-| 16bit | small | v1.0 | 94 | 32 | ripple | exhaustive | |
+| 16bit | small | v2.0 | 87 | 34 | pairs | exhaustive | |
 | 16bit | efficient | v1.0 | 200 | 4 | lookahead | exhaustive | |
 | 32bit | fast | v1.0 | 659 | 4 | lookahead | sampled | |
-| 32bit | small | v1.0 | 190 | 64 | ripple | sampled | |
+| 32bit | small | v2.0 | 175 | 66 | pairs | sampled | |
 | 32bit | efficient | v1.0 | 327 | 6 | two-level-8 | sampled | |
 | 64bit | fast | v1.0 | 2474 | 4 | lookahead | sampled | |
-| 64bit | small | v1.0 | 382 | 128 | ripple | sampled | |
+| 64bit | small | v2.0 | 351 | 130 | pairs | sampled | |
 | 64bit | efficient | v1.0 | 783 | 6 | two-level-8 | sampled | |
 
 Gates include the input gates. Up to 16 bit every input was tried (4.3 billion at 16 bit). At 32 and 64 bit
@@ -55,6 +55,7 @@ profile to whichever design wins when measured.
 | Design | Idea | Ticks | Gates |
 |---|---|---|---|
 | `ripple` | One 4-gate full adder per bit, the carry walking up | 2 per bit | about 4 per bit |
+| `pairs` | Two bits at a time in a 7-gate block (exact search: 6 is impossible), the carry walking from pair to pair | 2 per bit, plus 2 | about 3.5 per bit |
 | `lookahead` | Every sum bit sees its carry in one step | 4 at any size | about n x n / 2 |
 | `blocks-k` | Lookahead inside blocks of k bits, the carry walking from block to block | 2 per block | in between |
 | `two-level-k` | Blocks of k bits, and a second lookahead across the blocks | 6 at any size | far fewer than `lookahead` |
