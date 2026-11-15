@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "demultiplexer",
-  "gates": 77,
+  "gates": 70,
   "notes": "Generator design: flat.",
   "optimal": "best-known",
   "pins": {
@@ -87,7 +87,7 @@
   "profile": "efficient",
   "size": "64bit",
   "source": "generator",
-  "ticks": 3,
+  "ticks": 2,
   "verified": "exhaustive",
   "version": "1.0",
   "workshop": ""

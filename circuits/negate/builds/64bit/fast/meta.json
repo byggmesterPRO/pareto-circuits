@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "negate",
-  "gates": 190,
+  "gates": 126,
   "notes": "Generator design: flat.",
   "optimal": "best-known",
   "pins": {
@@ -144,7 +144,7 @@
   "profile": "fast",
   "size": "64bit",
   "source": "generator",
-  "ticks": 3,
+  "ticks": 2,
   "verified": "sampled",
   "version": "1.0",
   "workshop": ""

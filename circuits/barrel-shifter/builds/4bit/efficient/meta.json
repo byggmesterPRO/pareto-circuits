@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "barrel-shifter",
-  "gates": 22,
+  "gates": 16,
   "notes": "Generator design: normal-form.",
   "optimal": "best-known",
   "pins": {
@@ -26,7 +26,7 @@
   "profile": "efficient",
   "size": "4bit",
   "source": "generator",
-  "ticks": 3,
+  "ticks": 2,
   "verified": "exhaustive",
   "version": "1.0",
   "workshop": ""

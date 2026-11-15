@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "divider",
-  "gates": 5369,
+  "gates": 5305,
   "notes": "Generator design: two-level-4.",
   "optimal": "best-known",
   "pins": {
@@ -144,7 +144,7 @@
   "profile": "efficient",
   "size": "32bit",
   "source": "generator",
-  "ticks": 220,
+  "ticks": 219,
   "verified": "sampled",
   "version": "1.0",
   "workshop": ""

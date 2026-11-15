@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "decoder",
-  "gates": 272,
+  "gates": 264,
   "notes": "Generator design: flat.",
   "optimal": "best-known",
   "pins": {
@@ -280,7 +280,7 @@
   "profile": "fast",
   "size": "8bit",
   "source": "generator",
-  "ticks": 3,
+  "ticks": 2,
   "verified": "exhaustive",
   "version": "1.0",
   "workshop": ""

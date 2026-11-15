@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "adder-subtractor",
-  "gates": 71,
+  "gates": 54,
   "notes": "Generator design: two-level-4.",
   "optimal": "best-known",
   "pins": {
@@ -42,7 +42,7 @@
   "profile": "efficient",
   "size": "8bit",
   "source": "generator",
-  "ticks": 6,
+  "ticks": 5,
   "verified": "exhaustive",
   "version": "1.0",
   "workshop": ""

@@ -4,8 +4,8 @@
   ],
   "date": "2026-11-10",
   "family": "ram",
-  "gates": 1606,
-  "notes": "Generator design: direct. Ticks from an input to the outputs: 4. From a pulse to the outputs: 6. Inputs steady before a pulse: 5.",
+  "gates": 1591,
+  "notes": "Generator design: direct. Ticks from an input to the outputs: 3. From a pulse to the outputs: 5. Inputs steady before a pulse: 4.",
   "optimal": "best-known",
   "pins": {
     "inputs": [
@@ -39,7 +39,7 @@
   "profile": "efficient",
   "size": "64x8bit",
   "source": "generator",
-  "ticks": 4,
+  "ticks": 3,
   "verified": "sampled",
   "version": "1.0",
   "workshop": ""

@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "square",
-  "gates": 1254,
+  "gates": 1238,
   "notes": "Generator design: wide-blocks-16.",
   "optimal": "best-known",
   "pins": {
@@ -64,7 +64,7 @@
   "profile": "fast",
   "size": "16bit",
   "source": "generator",
-  "ticks": 11,
+  "ticks": 10,
   "verified": "exhaustive",
   "version": "1.0",
   "workshop": ""

@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "square-root",
-  "gates": 846,
+  "gates": 814,
   "notes": "Generator design: ripple.",
   "optimal": "best-known",
   "pins": {
@@ -64,7 +64,7 @@
   "profile": "small",
   "size": "32bit",
   "source": "generator",
-  "ticks": 305,
+  "ticks": 304,
   "verified": "exhaustive",
   "version": "1.0",
   "workshop": ""

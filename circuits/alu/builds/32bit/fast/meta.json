@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "alu",
-  "gates": 1097,
+  "gates": 1030,
   "notes": "Generator design: lookahead.",
   "optimal": "best-known",
   "pins": {
@@ -116,7 +116,7 @@
   "profile": "fast",
   "size": "32bit",
   "source": "generator",
-  "ticks": 7,
+  "ticks": 6,
   "verified": "sampled",
   "version": "1.0",
   "workshop": ""

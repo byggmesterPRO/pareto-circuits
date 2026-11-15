@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "adder",
-  "gates": 26,
+  "gates": 18,
   "notes": "Generator design: lookahead.",
   "optimal": "best-known",
   "pins": {
@@ -29,7 +29,7 @@
   "profile": "fast",
   "size": "4bit",
   "source": "generator",
-  "ticks": 4,
+  "ticks": 3,
   "verified": "exhaustive",
   "version": "1.0",
   "workshop": ""

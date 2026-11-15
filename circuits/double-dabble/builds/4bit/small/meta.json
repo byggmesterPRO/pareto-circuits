@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "double-dabble",
-  "gates": 10,
+  "gates": 6,
   "notes": "Generator design: chain-7.",
   "optimal": "best-known",
   "pins": {
@@ -28,7 +28,7 @@
   "profile": "small",
   "size": "4bit",
   "source": "generator",
-  "ticks": 6,
+  "ticks": 5,
   "verified": "exhaustive",
   "version": "1.0",
   "workshop": ""

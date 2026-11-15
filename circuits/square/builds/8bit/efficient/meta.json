@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "square",
-  "gates": 182,
+  "gates": 174,
   "notes": "Generator design: normal-form.",
   "optimal": "best-known",
   "pins": {
@@ -40,7 +40,7 @@
   "profile": "efficient",
   "size": "8bit",
   "source": "generator",
-  "ticks": 3,
+  "ticks": 2,
   "verified": "exhaustive",
   "version": "1.0",
   "workshop": ""

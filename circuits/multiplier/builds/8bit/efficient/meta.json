@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "multiplier",
-  "gates": 326,
+  "gates": 310,
   "notes": "Generator design: tree-blocks-8.",
   "optimal": "best-known",
   "pins": {
@@ -48,7 +48,7 @@
   "profile": "efficient",
   "size": "8bit",
   "source": "generator",
-  "ticks": 12,
+  "ticks": 11,
   "verified": "exhaustive",
   "version": "1.0",
   "workshop": ""

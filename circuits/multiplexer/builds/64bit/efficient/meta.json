@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "multiplexer",
-  "gates": 141,
+  "gates": 71,
   "notes": "Generator design: flat.",
   "optimal": "best-known",
   "pins": {
@@ -87,7 +87,7 @@
   "profile": "efficient",
   "size": "64bit",
   "source": "generator",
-  "ticks": 4,
+  "ticks": 3,
   "verified": "sampled",
   "version": "1.0",
   "workshop": ""

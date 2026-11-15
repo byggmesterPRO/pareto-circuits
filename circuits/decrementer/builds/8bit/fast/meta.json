@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "decrementer",
-  "gates": 23,
+  "gates": 15,
   "notes": "Generator design: flat.",
   "optimal": "best-known",
   "pins": {
@@ -33,7 +33,7 @@
   "profile": "fast",
   "size": "8bit",
   "source": "generator",
-  "ticks": 3,
+  "ticks": 2,
   "verified": "exhaustive",
   "version": "1.0",
   "workshop": ""

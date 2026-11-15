@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "subtractor",
-  "gates": 89,
+  "gates": 81,
   "notes": "Generator design: normal-form.",
   "optimal": "best-known",
   "pins": {
@@ -29,7 +29,7 @@
   "profile": "fast",
   "size": "4bit",
   "source": "generator",
-  "ticks": 3,
+  "ticks": 2,
   "verified": "exhaustive",
   "version": "1.0",
   "workshop": ""

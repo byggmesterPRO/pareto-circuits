@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "multiplier",
-  "gates": 534,
+  "gates": 518,
   "notes": "Generator design: wide-blocks-8.",
   "optimal": "best-known",
   "pins": {
@@ -48,7 +48,7 @@
   "profile": "fast",
   "size": "8bit",
   "source": "generator",
-  "ticks": 10,
+  "ticks": 9,
   "verified": "exhaustive",
   "version": "1.0",
   "workshop": ""

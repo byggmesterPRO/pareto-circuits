@@ -4,8 +4,8 @@
   ],
   "date": "2026-11-10",
   "family": "counter",
-  "gates": 193,
-  "notes": "Generator design: toggle. Ticks from an input to the outputs: 0. From a pulse to the outputs: 3. Inputs steady before a pulse: 1.",
+  "gates": 191,
+  "notes": "Generator design: toggle. Ticks from an input to the outputs: 0. From a pulse to the outputs: 2. Inputs steady before a pulse: 0.",
   "optimal": "best-known",
   "pins": {
     "inputs": [
@@ -82,7 +82,7 @@
   "profile": "fast",
   "size": "64bit",
   "source": "generator",
-  "ticks": 3,
+  "ticks": 2,
   "verified": "sampled",
   "version": "1.0",
   "workshop": ""

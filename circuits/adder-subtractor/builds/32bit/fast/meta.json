@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "adder-subtractor",
-  "gates": 731,
+  "gates": 666,
   "notes": "Generator design: lookahead.",
   "optimal": "best-known",
   "pins": {
@@ -114,7 +114,7 @@
   "profile": "fast",
   "size": "32bit",
   "source": "generator",
-  "ticks": 5,
+  "ticks": 4,
   "verified": "sampled",
   "version": "1.0",
   "workshop": ""

@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "alu",
-  "gates": 731,
+  "gates": 664,
   "notes": "Generator design: two-level-8.",
   "optimal": "best-known",
   "pins": {
@@ -116,7 +116,7 @@
   "profile": "efficient",
   "size": "32bit",
   "source": "generator",
-  "ticks": 8,
+  "ticks": 7,
   "verified": "sampled",
   "version": "1.0",
   "workshop": ""

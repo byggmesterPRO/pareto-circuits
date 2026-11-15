@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-15",
   "family": "adder",
-  "gates": 43,
+  "gates": 27,
   "notes": "Generator design: pairs.",
   "optimal": "best-known",
   "pins": {
@@ -41,7 +41,7 @@
   "profile": "small",
   "size": "8bit",
   "source": "generator",
-  "ticks": 18,
+  "ticks": 17,
   "verified": "exhaustive",
   "version": "2.0",
   "workshop": ""

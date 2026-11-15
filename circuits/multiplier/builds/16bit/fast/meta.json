@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "multiplier",
-  "gates": 3355,
+  "gates": 3323,
   "notes": "Generator design: wide-lookahead.",
   "optimal": "best-known",
   "pins": {
@@ -80,7 +80,7 @@
   "profile": "fast",
   "size": "16bit",
   "source": "generator",
-  "ticks": 12,
+  "ticks": 11,
   "verified": "exhaustive",
   "version": "1.0",
   "workshop": ""

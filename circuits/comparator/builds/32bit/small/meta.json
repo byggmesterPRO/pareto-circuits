@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "comparator",
-  "gates": 163,
+  "gates": 99,
   "notes": "Generator design: flat-nor.",
   "optimal": "best-known",
   "pins": {
@@ -83,7 +83,7 @@
   "profile": "small",
   "size": "32bit",
   "source": "generator",
-  "ticks": 5,
+  "ticks": 4,
   "verified": "sampled",
   "version": "1.0",
   "workshop": ""

@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "adder-subtractor",
-  "gates": 58,
+  "gates": 41,
   "notes": "Generator design: ripple.",
   "optimal": "best-known",
   "pins": {
@@ -42,7 +42,7 @@
   "profile": "small",
   "size": "8bit",
   "source": "generator",
-  "ticks": 19,
+  "ticks": 18,
   "verified": "exhaustive",
   "version": "1.0",
   "workshop": ""

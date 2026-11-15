@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "divider",
-  "gates": 8717,
+  "gates": 8653,
   "notes": "Generator design: lookahead.",
   "optimal": "best-known",
   "pins": {
@@ -144,7 +144,7 @@
   "profile": "fast",
   "size": "32bit",
   "source": "generator",
-  "ticks": 192,
+  "ticks": 191,
   "verified": "sampled",
   "version": "1.0",
   "workshop": ""

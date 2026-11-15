@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "square-root",
-  "gates": 1406,
+  "gates": 1374,
   "notes": "Generator design: lookahead.",
   "optimal": "best-known",
   "pins": {
@@ -64,7 +64,7 @@
   "profile": "fast",
   "size": "32bit",
   "source": "generator",
-  "ticks": 94,
+  "ticks": 93,
   "verified": "exhaustive",
   "version": "1.0",
   "workshop": ""

@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "square",
-  "gates": 697,
+  "gates": 681,
   "notes": "Generator design: tree-two-level-8.",
   "optimal": "best-known",
   "pins": {
@@ -64,7 +64,7 @@
   "profile": "efficient",
   "size": "16bit",
   "source": "generator",
-  "ticks": 14,
+  "ticks": 13,
   "verified": "exhaustive",
   "version": "1.0",
   "workshop": ""

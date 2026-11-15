@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "seven-segment",
-  "gates": 18,
+  "gates": 14,
   "notes": "Generator design: searched-small.",
   "optimal": "best-known",
   "pins": {
@@ -27,7 +27,7 @@
   "profile": "small",
   "size": "4bit",
   "source": "generator",
-  "ticks": 8,
+  "ticks": 7,
   "verified": "exhaustive",
   "version": "1.0",
   "workshop": ""

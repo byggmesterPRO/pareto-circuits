@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "subtractor",
-  "gates": 190,
+  "gates": 126,
   "notes": "Generator design: ripple.",
   "optimal": "best-known",
   "pins": {
@@ -113,7 +113,7 @@
   "profile": "small",
   "size": "32bit",
   "source": "generator",
-  "ticks": 65,
+  "ticks": 64,
   "verified": "sampled",
   "version": "1.0",
   "workshop": ""

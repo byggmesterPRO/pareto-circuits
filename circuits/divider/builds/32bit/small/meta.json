@@ -4,7 +4,7 @@
   ],
   "date": "2026-11-10",
   "family": "divider",
-  "gates": 3200,
+  "gates": 3136,
   "notes": "Generator design: ripple.",
   "optimal": "best-known",
   "pins": {
@@ -144,7 +144,7 @@
   "profile": "small",
   "size": "32bit",
   "source": "generator",
-  "ticks": 1091,
+  "ticks": 1090,
   "verified": "sampled",
   "version": "1.0",
   "workshop": ""
