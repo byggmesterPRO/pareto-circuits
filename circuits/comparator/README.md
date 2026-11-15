@@ -15,26 +15,26 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 
 | Size | Profile | Version | Gates | Ticks | Design | Verified | Workshop |
 |---|---|---|---|---|---|---|---|
-| 2bit | fast | v1.0 | 15 | 3 | normal-form | exhaustive | |
-| 2bit | small | v1.0 | 13 | 5 | flat-nor | exhaustive | |
-| 2bit | efficient | v1.0 | 15 | 3 | normal-form | exhaustive | |
-| 4bit | fast | v1.0 | 123 | 3 | normal-form | exhaustive | |
-| 4bit | small | v1.0 | 23 | 5 | flat-nor | exhaustive | |
-| 4bit | efficient | v1.0 | 27 | 4 | flat | exhaustive | |
-| 8bit | fast | v1.0 | 51 | 4 | flat | exhaustive | |
-| 8bit | small | v1.0 | 43 | 5 | flat-nor | exhaustive | |
-| 8bit | efficient | v1.0 | 51 | 4 | flat | exhaustive | |
-| 16bit | fast | v1.0 | 99 | 4 | flat | exhaustive | |
-| 16bit | small | v1.0 | 83 | 5 | flat-nor | exhaustive | |
-| 16bit | efficient | v1.0 | 99 | 4 | flat | exhaustive | |
-| 32bit | fast | v1.0 | 195 | 4 | flat | sampled | |
-| 32bit | small | v1.0 | 163 | 5 | flat-nor | sampled | |
-| 32bit | efficient | v1.0 | 195 | 4 | flat | sampled | |
-| 64bit | fast | v1.0 | 387 | 4 | flat | sampled | |
-| 64bit | small | v1.0 | 323 | 5 | flat-nor | sampled | |
-| 64bit | efficient | v1.0 | 387 | 4 | flat | sampled | |
+| 2bit | fast | v1.0 | 11 | 2 | normal-form | exhaustive | |
+| 2bit | small | v1.0 | 9 | 4 | flat-nor | exhaustive | |
+| 2bit | efficient | v1.0 | 11 | 2 | normal-form | exhaustive | |
+| 4bit | fast | v1.0 | 115 | 2 | normal-form | exhaustive | |
+| 4bit | small | v1.0 | 15 | 4 | flat-nor | exhaustive | |
+| 4bit | efficient | v1.0 | 19 | 3 | flat | exhaustive | |
+| 8bit | fast | v1.0 | 35 | 3 | flat | exhaustive | |
+| 8bit | small | v1.0 | 27 | 4 | flat-nor | exhaustive | |
+| 8bit | efficient | v1.0 | 35 | 3 | flat | exhaustive | |
+| 16bit | fast | v1.0 | 67 | 3 | flat | exhaustive | |
+| 16bit | small | v1.0 | 51 | 4 | flat-nor | exhaustive | |
+| 16bit | efficient | v1.0 | 67 | 3 | flat | exhaustive | |
+| 32bit | fast | v1.0 | 131 | 3 | flat | sampled | |
+| 32bit | small | v1.0 | 99 | 4 | flat-nor | sampled | |
+| 32bit | efficient | v1.0 | 131 | 3 | flat | sampled | |
+| 64bit | fast | v1.0 | 259 | 3 | flat | sampled | |
+| 64bit | small | v1.0 | 195 | 4 | flat-nor | sampled | |
+| 64bit | efficient | v1.0 | 259 | 3 | flat | sampled | |
 
-Gates include the input gates. Up to 16 bit every input was tried. At 32 and 64 bit they were checked on about a million inputs: random
+Gates and ticks do not count the input gates (see the main README). Up to 16 bit every input was tried. At 32 and 64 bit they were checked on about a million inputs: random
 ones, edge cases, equal numbers, and numbers that differ in a single bit. None has been tested in the game yet.
 
 ## Generator
@@ -49,9 +49,9 @@ The code is in `generator/src/lib.rs`.
 
 | Design | Idea | Ticks | Gates |
 |---|---|---|---|
-| `flat` | One AND gate per bit for "they differ here, b has the 1, all bits above are equal", and the same for a | 4 at any size | about 4 per bit |
-| `flat-nor` | The same for below only; above is "neither below nor equal" | 5 at any size | about 3 per bit |
-| `normal-form` | Every output is one XOR gate over AND gates of plain inputs (up to 4bit) | 3 | many |
+| `flat` | One AND gate per bit for "they differ here, b has the 1, all bits above are equal", and the same for a | 3 at any size | about 4 per bit |
+| `flat-nor` | The same for below only; above is "neither below nor equal" | 4 at any size | about 3 per bit |
+| `normal-form` | Every output is one XOR gate over AND gates of plain inputs (up to 4bit) | 2 | many |
 
 Walking the answer up bit by bit (3 gates per bit is the fewest, by exact search) and the subtractor's borrow
 networks were measured too. Both lose to `flat-nor` on gates and on ticks, so they are not in the generator.

@@ -81,9 +81,12 @@ of the word here now. `pareto pick --balanced` makes a balanced build of any des
 
 ### How we count
 
-- **gates**: every logic gate in the blueprint, input and output gates included.
-- **ticks**: worst-case ticks from an input changing until the outputs are correct. Each gate adds 1 tick, so this is the number of gates on the longest path from an input to an output, counting both ends.
-- Circuits with memory (RAM, counters) define what `ticks` means in their family README, for example read delay.
+- **inputs**: an input is a switch or button that the player wires to whatever gates need it (up to 255). Input gates are not counted as gates, and the tick they take is not counted as a tick.
+- **gates**: every logic gate in the blueprint except the input gates. Output gates are included.
+- **ticks**: worst-case ticks from an input changing until the outputs are correct. Each gate adds 1 tick, so this is the number of gates on the longest path from an input to an output, the output gate included. An output that is itself an input has 0 ticks.
+- Circuits with memory (RAM, counters) define what `ticks` means in their family README, for example read delay. Every delay measured from an input or a pulse leaves out the input gate's tick too.
+
+Why: counting input gates rewards designs built around one gate per input, which is not how the circuits get used. Blueprints still ship with the input gates, in yellow (`E8C547`), so a player can wire to them or merge them away. Driven at those input gates, a build is one tick slower than its `ticks`, and it has one more gate per input than its `gates`.
 - **timers**: a timer set to `d` adds `d + 1` ticks, like `d + 1` gates in a row. Timers are counted apart from gates: `gates` never includes them, `timers` is how many there are, and the parts in the blueprint are `gates + timers`. Builds have no timers; the balanced form of a design (every path the same number of ticks, made by `pareto pick --balanced`) does, and there an output pin can be a timer.
 
 ### meta.json

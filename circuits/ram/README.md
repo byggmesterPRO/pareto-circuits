@@ -23,9 +23,9 @@ The gates wired to themselves start out off, so the memory starts at 0.
 
 | Size | Read | Write pulse to outputs | Address and data steady before write |
 |---|---|---|---|
-| 16x4bit, 16x8bit | 4 | 5 | 5 |
-| 64x8bit | 4 | 6 | 5 |
-| 256x8bit | 5 | 7 | 6 |
+| 16x4bit, 16x8bit | 3 | 4 | 4 |
+| 64x8bit | 3 | 5 | 4 |
+| 256x8bit | 4 | 6 | 5 |
 
 Keep the address and data steady until 2 ticks after the pulse.
 
@@ -39,26 +39,26 @@ is on the outputs when the ticks are over.
 | 64x8bit | 9 | 3 |
 | 256x8bit | 11 | 4 |
 
-A tick is counted from the moment an input is driven, so the input gate itself is the first tick.
+Ticks are counted as in the main README: the tick of the input gate is not counted. Gaps between two inputs, such as how far apart pulses can come, are the same either way.
 
 ## Records
 
 | Size | Profile | Version | Gates | Ticks | Design | Verified | Workshop |
 |---|---|---|---|---|---|---|---|
-| 16x4bit | fast | v1.0 | 213 | 4 | direct | sampled | |
-| 16x4bit | small | v1.0 | 213 | 4 | direct | sampled | |
-| 16x4bit | efficient | v1.0 | 213 | 4 | direct | sampled | |
-| 16x8bit | fast | v1.0 | 417 | 4 | direct | sampled | |
-| 16x8bit | small | v1.0 | 417 | 4 | direct | sampled | |
-| 16x8bit | efficient | v1.0 | 417 | 4 | direct | sampled | |
-| 64x8bit | fast | v1.0 | 1606 | 4 | direct | sampled | |
-| 64x8bit | small | v1.0 | 1606 | 4 | direct | sampled | |
-| 64x8bit | efficient | v1.0 | 1606 | 4 | direct | sampled | |
-| 256x8bit | fast | v1.0 | 6346 | 5 | direct | sampled | |
-| 256x8bit | small | v1.0 | 6346 | 5 | direct | sampled | |
-| 256x8bit | efficient | v1.0 | 6346 | 5 | direct | sampled | |
+| 16x4bit | fast | v1.0 | 204 | 3 | direct | sampled | |
+| 16x4bit | small | v1.0 | 204 | 3 | direct | sampled | |
+| 16x4bit | efficient | v1.0 | 204 | 3 | direct | sampled | |
+| 16x8bit | fast | v1.0 | 404 | 3 | direct | sampled | |
+| 16x8bit | small | v1.0 | 404 | 3 | direct | sampled | |
+| 16x8bit | efficient | v1.0 | 404 | 3 | direct | sampled | |
+| 64x8bit | fast | v1.0 | 1591 | 3 | direct | sampled | |
+| 64x8bit | small | v1.0 | 1591 | 3 | direct | sampled | |
+| 64x8bit | efficient | v1.0 | 1591 | 3 | direct | sampled | |
+| 256x8bit | fast | v1.0 | 6329 | 4 | direct | sampled | |
+| 256x8bit | small | v1.0 | 6329 | 4 | direct | sampled | |
+| 256x8bit | efficient | v1.0 | 6329 | 4 | direct | sampled | |
 
-Gates include the input gates. The three profiles hold the same build where one design wins all of them.
+Gates and ticks do not count the input gates (see the main README). The three profiles hold the same build where one design wins all of them.
 Checked on the tick simulator: 3000 rounds of a random address and data, with and without a write, on 64 copies at once, against a model.
 None has been tested in the game yet, and these lean on the simulator's tick model more than circuits without
 memory do.

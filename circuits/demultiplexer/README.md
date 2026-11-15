@@ -16,26 +16,26 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 
 | Size | Profile | Version | Gates | Ticks | Design | Verified | Workshop |
 |---|---|---|---|---|---|---|---|
-| 2bit | fast | v1.0 | 5 | 3 | flat | exhaustive | |
-| 2bit | small | v1.0 | 5 | 3 | flat | exhaustive | |
-| 2bit | efficient | v1.0 | 5 | 3 | flat | exhaustive | |
-| 4bit | fast | v1.0 | 9 | 3 | flat | exhaustive | |
-| 4bit | small | v1.0 | 9 | 3 | flat | exhaustive | |
-| 4bit | efficient | v1.0 | 9 | 3 | flat | exhaustive | |
-| 8bit | fast | v1.0 | 15 | 3 | flat | exhaustive | |
-| 8bit | small | v1.0 | 15 | 3 | flat | exhaustive | |
-| 8bit | efficient | v1.0 | 15 | 3 | flat | exhaustive | |
-| 16bit | fast | v1.0 | 25 | 3 | flat | exhaustive | |
-| 16bit | small | v1.0 | 25 | 3 | flat | exhaustive | |
-| 16bit | efficient | v1.0 | 25 | 3 | flat | exhaustive | |
-| 32bit | fast | v1.0 | 43 | 3 | flat | exhaustive | |
-| 32bit | small | v1.0 | 43 | 3 | flat | exhaustive | |
-| 32bit | efficient | v1.0 | 43 | 3 | flat | exhaustive | |
-| 64bit | fast | v1.0 | 77 | 3 | flat | exhaustive | |
-| 64bit | small | v1.0 | 77 | 3 | flat | exhaustive | |
-| 64bit | efficient | v1.0 | 77 | 3 | flat | exhaustive | |
+| 2bit | fast | v1.0 | 3 | 2 | flat | exhaustive | |
+| 2bit | small | v1.0 | 3 | 2 | flat | exhaustive | |
+| 2bit | efficient | v1.0 | 3 | 2 | flat | exhaustive | |
+| 4bit | fast | v1.0 | 6 | 2 | flat | exhaustive | |
+| 4bit | small | v1.0 | 6 | 2 | flat | exhaustive | |
+| 4bit | efficient | v1.0 | 6 | 2 | flat | exhaustive | |
+| 8bit | fast | v1.0 | 11 | 2 | flat | exhaustive | |
+| 8bit | small | v1.0 | 11 | 2 | flat | exhaustive | |
+| 8bit | efficient | v1.0 | 11 | 2 | flat | exhaustive | |
+| 16bit | fast | v1.0 | 20 | 2 | flat | exhaustive | |
+| 16bit | small | v1.0 | 20 | 2 | flat | exhaustive | |
+| 16bit | efficient | v1.0 | 20 | 2 | flat | exhaustive | |
+| 32bit | fast | v1.0 | 37 | 2 | flat | exhaustive | |
+| 32bit | small | v1.0 | 37 | 2 | flat | exhaustive | |
+| 32bit | efficient | v1.0 | 37 | 2 | flat | exhaustive | |
+| 64bit | fast | v1.0 | 70 | 2 | flat | exhaustive | |
+| 64bit | small | v1.0 | 70 | 2 | flat | exhaustive | |
+| 64bit | efficient | v1.0 | 70 | 2 | flat | exhaustive | |
 
-Gates include the input gates. Every input was tried at every size. None has been tested in the game yet.
+Gates and ticks do not count the input gates (see the main README). Every input was tried at every size. None has been tested in the game yet.
 
 ## Generator
 
@@ -49,8 +49,8 @@ The code is in `generator/src/lib.rs`.
 
 | Design | Idea | Ticks | Gates |
 |---|---|---|---|
-| `flat` | One AND gate per line over the data and the line number bits or their inverses | 3 | n + log n |
-| `matrix` | The high half of the line number is decoded into rows (which carry the data), the low half into columns, and each output is the AND of its row and its column | 4 | more |
+| `flat` | One AND gate per line over the data and the line number bits or their inverses | 2 | n + log n |
+| `matrix` | The high half of the line number is decoded into rows (which carry the data), the low half into columns, and each output is the AND of its row and its column | 3 | more |
 
 `matrix` is how it is built from two-input parts, and what the layout looks like. With gates that take any
 number of inputs it only adds the row and column gates and a tick, so `flat` holds every slot. Both are laid

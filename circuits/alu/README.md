@@ -26,23 +26,23 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 
 | Size | Profile | Version | Gates | Ticks | Design | Verified | Workshop |
 |---|---|---|---|---|---|---|---|
-| 2bit | fast | v1.0 | 54 | 7 | lookahead | exhaustive | |
-| 2bit | small | v1.0 | 52 | 9 | ripple | exhaustive | |
-| 2bit | efficient | v1.0 | 54 | 7 | lookahead | exhaustive | |
-| 4bit | fast | v1.0 | 95 | 7 | lookahead | exhaustive | |
-| 4bit | small | v1.0 | 88 | 13 | ripple | exhaustive | |
-| 4bit | efficient | v1.0 | 95 | 7 | lookahead | exhaustive | |
-| 8bit | fast | v1.0 | 189 | 7 | lookahead | exhaustive | |
-| 8bit | small | v1.0 | 160 | 21 | ripple | exhaustive | |
-| 8bit | efficient | v1.0 | 189 | 7 | lookahead | exhaustive | |
-| 16bit | fast | v1.0 | 425 | 7 | lookahead | sampled | |
-| 16bit | small | v1.0 | 304 | 37 | ripple | sampled | |
-| 16bit | efficient | v1.0 | 347 | 8 | two-level-4 | sampled | |
-| 32bit | fast | v1.0 | 1097 | 7 | lookahead | sampled | |
-| 32bit | small | v1.0 | 592 | 69 | ripple | sampled | |
-| 32bit | efficient | v1.0 | 731 | 8 | two-level-8 | sampled | |
+| 2bit | fast | v1.0 | 47 | 6 | lookahead | exhaustive | |
+| 2bit | small | v1.0 | 45 | 8 | ripple | exhaustive | |
+| 2bit | efficient | v1.0 | 47 | 6 | lookahead | exhaustive | |
+| 4bit | fast | v1.0 | 84 | 6 | lookahead | exhaustive | |
+| 4bit | small | v1.0 | 77 | 12 | ripple | exhaustive | |
+| 4bit | efficient | v1.0 | 84 | 6 | lookahead | exhaustive | |
+| 8bit | fast | v1.0 | 170 | 6 | lookahead | exhaustive | |
+| 8bit | small | v1.0 | 141 | 20 | ripple | exhaustive | |
+| 8bit | efficient | v1.0 | 170 | 6 | lookahead | exhaustive | |
+| 16bit | fast | v1.0 | 390 | 6 | lookahead | sampled | |
+| 16bit | small | v1.0 | 269 | 36 | ripple | sampled | |
+| 16bit | efficient | v1.0 | 312 | 7 | two-level-4 | sampled | |
+| 32bit | fast | v1.0 | 1030 | 6 | lookahead | sampled | |
+| 32bit | small | v1.0 | 525 | 68 | ripple | sampled | |
+| 32bit | efficient | v1.0 | 664 | 7 | two-level-8 | sampled | |
 
-Gates include the input gates. Up to 8 bit every input was tried. 16 and 32 bit were checked on about a million inputs, with carry and
+Gates and ticks do not count the input gates (see the main README). Up to 8 bit every input was tried. 16 and 32 bit were checked on about a million inputs, with carry and
 borrow chains and 2000 random pairs for every operation among them. None has been tested in the game yet.
 
 ## Generator

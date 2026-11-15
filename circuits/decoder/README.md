@@ -15,17 +15,17 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 
 | Size | Profile | Version | Gates | Ticks | Design | Verified | Workshop |
 |---|---|---|---|---|---|---|---|
-| 2bit | fast | v1.0 | 8 | 3 | flat | exhaustive | |
-| 2bit | small | v1.0 | 8 | 3 | flat | exhaustive | |
-| 2bit | efficient | v1.0 | 8 | 3 | flat | exhaustive | |
-| 4bit | fast | v1.0 | 24 | 3 | flat | exhaustive | |
-| 4bit | small | v1.0 | 24 | 3 | flat | exhaustive | |
-| 4bit | efficient | v1.0 | 24 | 3 | flat | exhaustive | |
-| 8bit | fast | v1.0 | 272 | 3 | flat | exhaustive | |
-| 8bit | small | v1.0 | 272 | 3 | flat | exhaustive | |
-| 8bit | efficient | v1.0 | 272 | 3 | flat | exhaustive | |
+| 2bit | fast | v1.0 | 6 | 2 | flat | exhaustive | |
+| 2bit | small | v1.0 | 6 | 2 | flat | exhaustive | |
+| 2bit | efficient | v1.0 | 6 | 2 | flat | exhaustive | |
+| 4bit | fast | v1.0 | 20 | 2 | flat | exhaustive | |
+| 4bit | small | v1.0 | 20 | 2 | flat | exhaustive | |
+| 4bit | efficient | v1.0 | 20 | 2 | flat | exhaustive | |
+| 8bit | fast | v1.0 | 264 | 2 | flat | exhaustive | |
+| 8bit | small | v1.0 | 264 | 2 | flat | exhaustive | |
+| 8bit | efficient | v1.0 | 264 | 2 | flat | exhaustive | |
 
-Gates include the input gates. Every input was tried at every size. None has been tested in the game yet.
+Gates and ticks do not count the input gates (see the main README). Every input was tried at every size. None has been tested in the game yet.
 
 ## Generator
 

@@ -13,23 +13,23 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 
 | Size | Profile | Version | Gates | Ticks | Design | Verified | Workshop |
 |---|---|---|---|---|---|---|---|
-| 2bit | fast | v1.0 | 4 | 3 | normal-form | exhaustive | |
-| 2bit | small | v1.0 | 4 | 3 | normal-form | exhaustive | |
-| 2bit | efficient | v1.0 | 4 | 3 | normal-form | exhaustive | |
-| 4bit | fast | v1.0 | 18 | 3 | normal-form | exhaustive | |
-| 4bit | small | v1.0 | 18 | 3 | normal-form | exhaustive | |
-| 4bit | efficient | v1.0 | 18 | 3 | normal-form | exhaustive | |
-| 8bit | fast | v1.0 | 182 | 3 | normal-form | exhaustive | |
-| 8bit | small | v1.0 | 134 | 24 | ripple | exhaustive | |
-| 8bit | efficient | v1.0 | 182 | 3 | normal-form | exhaustive | |
-| 16bit | fast | v1.0 | 1254 | 11 | wide-blocks-16 | exhaustive | |
-| 16bit | small | v1.0 | 586 | 56 | ripple | exhaustive | |
-| 16bit | efficient | v1.0 | 697 | 14 | tree-two-level-8 | exhaustive | |
-| 32bit | fast | v1.0 | 7845 | 13 | wide-lookahead | exhaustive | |
-| 32bit | small | v1.0 | 2450 | 120 | ripple | exhaustive | |
-| 32bit | efficient | v1.0 | 2821 | 18 | tree-two-level-8 | exhaustive | |
+| 2bit | fast | v1.0 | 2 | 2 | normal-form | exhaustive | |
+| 2bit | small | v1.0 | 2 | 2 | normal-form | exhaustive | |
+| 2bit | efficient | v1.0 | 2 | 2 | normal-form | exhaustive | |
+| 4bit | fast | v1.0 | 14 | 2 | normal-form | exhaustive | |
+| 4bit | small | v1.0 | 14 | 2 | normal-form | exhaustive | |
+| 4bit | efficient | v1.0 | 14 | 2 | normal-form | exhaustive | |
+| 8bit | fast | v1.0 | 174 | 2 | normal-form | exhaustive | |
+| 8bit | small | v1.0 | 126 | 23 | ripple | exhaustive | |
+| 8bit | efficient | v1.0 | 174 | 2 | normal-form | exhaustive | |
+| 16bit | fast | v1.0 | 1238 | 10 | wide-blocks-16 | exhaustive | |
+| 16bit | small | v1.0 | 570 | 55 | ripple | exhaustive | |
+| 16bit | efficient | v1.0 | 681 | 13 | tree-two-level-8 | exhaustive | |
+| 32bit | fast | v1.0 | 7813 | 12 | wide-lookahead | exhaustive | |
+| 32bit | small | v1.0 | 2418 | 119 | ripple | exhaustive | |
+| 32bit | efficient | v1.0 | 2789 | 17 | tree-two-level-8 | exhaustive | |
 
-Gates include the input gates. Every input was tried at every size (4.3 billion at 32 bit). None has been tested in the game yet.
+Gates and ticks do not count the input gates (see the main README). Every input was tried at every size (4.3 billion at 32 bit). None has been tested in the game yet.
 
 ## Generator
 

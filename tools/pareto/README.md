@@ -18,12 +18,19 @@ Run it from inside the repo.
 
 1. The family's generator (`circuits/<family>/generator/`) offers several designs for the size.
 2. Each design is checked on every input by `logic-sim` (sampled above 32 input bits) and its gates and ticks
-   are counted. A design that is wrong, or that the game could not build, stops the run.
+   are counted, the way the main README counts them: the input gates are not gates and their tick is not a
+   tick. A design that is wrong, or that the game could not build, stops the run.
 3. Each profile goes to the design that wins by the main README's rule: `fast` is fewest ticks, `small` is
    fewest gates, `efficient` is lowest gates x ticks.
 4. With `--write`, a winner is written into its slot only if it beats what is there. The version goes up
    (major if the ticks changed, minor otherwise), the `localId` is kept, and the written slot is read back and
    checked once more.
+
+Every number pareto prints, stores in `meta.json`, compares or scores is counted that way, and so are the
+wishes below (`--max-ticks`, `--max-gates` and the rest). The blueprints it writes still have the input
+gates, in yellow, and the simulator drives them, so a check that runs the circuit (the stream test, the
+memory operations, the balancer) works with the delay including the input gate and takes that tick off
+only when it reports.
 
 So a generator never has to say which design is the fast one. It offers what it has, and the numbers decide.
 A one-off search result that sits in a slot stays there until a design beats it.
@@ -60,7 +67,7 @@ Balanced here is the game's meaning, not the profile's (see `tools/logic-sim/REA
 without memory is also measured in its balanced form: timers are added until every path is the design's
 `ticks`, and the result is checked to be the same gates, to have equal paths, and to give the right outputs
 on inputs that change every tick. A timer counts as one part, so the size of a balanced design is its gates
-plus its timers. `designs` shows that size in the `balanced` column, and `frontier` prints a second frontier
+(counted, without the input gates) plus its timers. `designs` shows that size in the `balanced` column, and `frontier` prints a second frontier
 for it. The two frontiers are not the same designs: one that is small as it is can need many timers.
 
 Two designs with the same gates and ticks are told apart by that balanced size: the one that needs fewer
@@ -82,7 +89,7 @@ timer count of a balanced design is a search result too.
 2. Make `circuits/<family>/generator/` a small Rust library with `SIZES` and `designs(size)`, built on
    `logic_sim::build::Builder`. The builder folds constants away, shares equal gates, and doubles a gate that
    would drive more than 255 others. `logic_sim::parts` has pieces to reuse: carry networks, the 4-gate full
-   adder, decoders, and a 3-tick circuit for any small function.
+   adder, decoders, and a 2-tick circuit for any small function.
 3. Add the crate to the workspace `Cargo.toml`, to `tools/pareto/Cargo.toml`, and to `generator()` in
    `tools/pareto/src/main.rs`.
 4. `cargo test --release -p pareto` then checks every design of every family on every input, at every size

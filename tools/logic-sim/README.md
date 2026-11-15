@@ -34,6 +34,19 @@ JSON and exits 1 if there is a problem. `logic-sim help` lists them.
 | `run <circuit> <script>` | Runs a test script on the tick simulator |
 | `serve` | Stays running: one JSON request per line in, one reply per line out |
 
+## How it counts
+
+Gates and ticks in every reply are counted the way the main README counts them: the input gates are not
+gates, and the tick an input gate takes is not a tick. An output that is an input pin has 0 ticks. Replies
+also give `input_gates`, how many input gates the circuit has, and a `note` that the blueprint as shipped
+has those gates, so it is one gate per input bigger and one tick slower when it is driven at them. `parts`
+is the counted gates plus the timers. A number in a request, such as `ticks` for `balance`, is counted too.
+
+Inside, the simulator drives the input gates that are in the blueprint, so everything that runs the circuit
+uses the real delay with the input gate in it, and takes that tick off only when it reports. In the library
+the physical numbers are `Circuit::gates`, `Circuit::ticks` and `Balance`, and the counted ones are
+`Circuit::counted_gates`, `Circuit::counted_ticks`, `Circuit::input_gates` and `circuit::uncount`.
+
 A bare `blueprint.json` does not say which gates are the inputs and outputs. Give them with
 `--pins <file>`: `{"inputs": [controller id, ...], "outputs": [controller id or null, ...]}`. A build slot has
 them in its `meta.json`, and a netlist has them built in.
@@ -99,6 +112,10 @@ What differs is the timing, because one delay is not enough for a circuit with m
 | `pulse_at` | null | where in that gap the pulse goes |
 | `ticks` | `read` | `read` or `write`, whichever the family README names |
 
+`read`, `write` and `setup` are delays from driving an input, so they leave out the input gate's tick, and
+are never below 0. `period` and `pulse_at` are gaps between two inputs being driven. Both ends of a gap pass
+through an input gate, so leaving that tick out changes nothing, and they are given as measured.
+
 `period` is the answer to "how often" for both kinds. With memory, an operation is `period` ticks long: the
 data and address change at its start, the pulse (if there is one) comes `pulse_at` ticks later, and at its
 end the outputs have to be what the model says. `verify --pace` (`"pace": true` in a request) tries periods
@@ -153,10 +170,11 @@ works for circuits with memory and timers. Checking against a table, cases or an
 - 30 random circuits with feedback loops, self-wired gates and timers, 200 ticks each with random inputs:
   the same state for every part on every tick
 
-`cargo test` has 23 tests here: a half adder, a NOR latch, timers (one, and against rows of gates), balancing,
+`cargo test` has 25 tests here: a half adder, a NOR latch, timers (one, and against rows of gates), balancing,
 independent lanes, tables, cases, circuit
 against circuit, parts in any order, more than 64 output bits, 128 input bits, the double dabble reference,
-doubling a gate that drives too many, and writing a blueprint and reading it back.
+doubling a gate that drives too many, writing a blueprint and reading it back, and counting without the input
+gates.
 
 ## Speed
 
@@ -165,11 +183,11 @@ Times are whole program runs.
 
 | Size | Inputs tried | Gates | logic-sim | bygg (Python) |
 |---|---|---|---|---|
-| 12bit | 4096 | 135 | 0.02 s | 0.16 s |
-| 16bit | 65 536 | 244 | 0.02 s | 5.5 s |
-| 24bit | 16.8 million | 572 | 0.07 s | |
-| 28bit | 268 million | 785 | 0.66 s | |
-| 32bit | 4.3 billion | 1033 | 15 s | |
+| 12bit | 4096 | 123 | 0.02 s | 0.16 s |
+| 16bit | 65 536 | 228 | 0.02 s | 5.5 s |
+| 24bit | 16.8 million | 548 | 0.07 s | |
+| 28bit | 268 million | 757 | 0.66 s | |
+| 32bit | 4.3 billion | 1001 | 15 s | |
 
 About 0.015 s of each run is starting the program and reading the file. Through `serve` that is gone: one
 check of the 12bit circuit takes 0.9 ms, against 57 ms for the Python verifier inside a running Python.

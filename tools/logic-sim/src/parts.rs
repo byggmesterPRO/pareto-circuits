@@ -118,7 +118,7 @@ pub fn decode(b: &mut Builder, select: &[S], also: &[S]) -> Vec<S> {
         .collect()
 }
 
-/// Any function of a few input bits in 3 ticks: every output is one XOR gate over AND gates of plain inputs
+/// Any function of a few input bits in 2 ticks (3 with the input gate): every output is one XOR gate over AND gates of plain inputs
 /// (its algebraic normal form), so no inverters are needed. Only for small inputs: the number of AND gates
 /// can double with every input bit.
 pub fn normal_form(bits: usize, out_bits: usize, f: &dyn Fn(u128) -> u128) -> Result<Netlist, String> {

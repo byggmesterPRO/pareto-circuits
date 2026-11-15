@@ -18,35 +18,35 @@ A button or switch is too slow; send it through a one-tick pulse maker first.
 
 The gates wired to themselves start out off, so the memory starts at 0.
 
-`ticks` is the time from a pulse to the new count on the outputs: 3 at any size (bit 0 is there after 2).
+`ticks` is the time from a pulse to the new count on the outputs: 2 at any size (bit 0 is there after 1).
 Pulses can follow each other 3 ticks apart.
 
-A tick is counted from the moment an input is driven, so the input gate itself is the first tick.
+Ticks are counted as in the main README: the tick of the input gate is not counted. Gaps between two inputs, such as how far apart pulses can come, are the same either way.
 
 ## Records
 
 | Size | Profile | Version | Gates | Ticks | Design | Verified | Workshop |
 |---|---|---|---|---|---|---|---|
-| 2bit | fast | v1.0 | 7 | 3 | toggle | sampled | |
-| 2bit | small | v1.0 | 7 | 3 | toggle | sampled | |
-| 2bit | efficient | v1.0 | 7 | 3 | toggle | sampled | |
-| 4bit | fast | v1.0 | 13 | 3 | toggle | sampled | |
-| 4bit | small | v1.0 | 13 | 3 | toggle | sampled | |
-| 4bit | efficient | v1.0 | 13 | 3 | toggle | sampled | |
-| 8bit | fast | v1.0 | 25 | 3 | toggle | sampled | |
-| 8bit | small | v1.0 | 25 | 3 | toggle | sampled | |
-| 8bit | efficient | v1.0 | 25 | 3 | toggle | sampled | |
-| 16bit | fast | v1.0 | 49 | 3 | toggle | sampled | |
-| 16bit | small | v1.0 | 49 | 3 | toggle | sampled | |
-| 16bit | efficient | v1.0 | 49 | 3 | toggle | sampled | |
-| 32bit | fast | v1.0 | 97 | 3 | toggle | sampled | |
-| 32bit | small | v1.0 | 97 | 3 | toggle | sampled | |
-| 32bit | efficient | v1.0 | 97 | 3 | toggle | sampled | |
-| 64bit | fast | v1.0 | 193 | 3 | toggle | sampled | |
-| 64bit | small | v1.0 | 193 | 3 | toggle | sampled | |
-| 64bit | efficient | v1.0 | 193 | 3 | toggle | sampled | |
+| 2bit | fast | v1.0 | 5 | 2 | toggle | sampled | |
+| 2bit | small | v1.0 | 5 | 2 | toggle | sampled | |
+| 2bit | efficient | v1.0 | 5 | 2 | toggle | sampled | |
+| 4bit | fast | v1.0 | 11 | 2 | toggle | sampled | |
+| 4bit | small | v1.0 | 11 | 2 | toggle | sampled | |
+| 4bit | efficient | v1.0 | 11 | 2 | toggle | sampled | |
+| 8bit | fast | v1.0 | 23 | 2 | toggle | sampled | |
+| 8bit | small | v1.0 | 23 | 2 | toggle | sampled | |
+| 8bit | efficient | v1.0 | 23 | 2 | toggle | sampled | |
+| 16bit | fast | v1.0 | 47 | 2 | toggle | sampled | |
+| 16bit | small | v1.0 | 47 | 2 | toggle | sampled | |
+| 16bit | efficient | v1.0 | 47 | 2 | toggle | sampled | |
+| 32bit | fast | v1.0 | 95 | 2 | toggle | sampled | |
+| 32bit | small | v1.0 | 95 | 2 | toggle | sampled | |
+| 32bit | efficient | v1.0 | 95 | 2 | toggle | sampled | |
+| 64bit | fast | v1.0 | 191 | 2 | toggle | sampled | |
+| 64bit | small | v1.0 | 191 | 2 | toggle | sampled | |
+| 64bit | efficient | v1.0 | 191 | 2 | toggle | sampled | |
 
-Gates include the input gates. The three profiles hold the same build where one design wins all of them.
+Gates and ticks do not count the input gates (see the main README). The three profiles hold the same build where one design wins all of them.
 Checked on the tick simulator: 3000 rounds of count, reset or nothing, on 64 copies at once, against a model. That reaches counts of about
 1000, so above 10 bits the high bits were never seen to flip; they are the same three gates as the low ones.
 None has been tested in the game yet, and these lean on the simulator's tick model more than circuits without

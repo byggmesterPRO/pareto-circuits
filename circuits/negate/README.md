@@ -14,26 +14,26 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 
 | Size | Profile | Version | Gates | Ticks | Design | Verified | Workshop |
 |---|---|---|---|---|---|---|---|
-| 2bit | fast | v1.0 | 4 | 2 | flat | exhaustive | |
-| 2bit | small | v1.0 | 4 | 2 | flat | exhaustive | |
-| 2bit | efficient | v1.0 | 4 | 2 | flat | exhaustive | |
-| 4bit | fast | v1.0 | 10 | 3 | flat | exhaustive | |
-| 4bit | small | v1.0 | 10 | 3 | flat | exhaustive | |
-| 4bit | efficient | v1.0 | 10 | 3 | flat | exhaustive | |
-| 8bit | fast | v1.0 | 22 | 3 | flat | exhaustive | |
-| 8bit | small | v1.0 | 22 | 3 | flat | exhaustive | |
-| 8bit | efficient | v1.0 | 22 | 3 | flat | exhaustive | |
-| 16bit | fast | v1.0 | 46 | 3 | flat | exhaustive | |
-| 16bit | small | v1.0 | 46 | 3 | flat | exhaustive | |
-| 16bit | efficient | v1.0 | 46 | 3 | flat | exhaustive | |
-| 32bit | fast | v1.0 | 94 | 3 | flat | exhaustive | |
-| 32bit | small | v1.0 | 94 | 3 | flat | exhaustive | |
-| 32bit | efficient | v1.0 | 94 | 3 | flat | exhaustive | |
-| 64bit | fast | v1.0 | 190 | 3 | flat | sampled | |
-| 64bit | small | v1.0 | 190 | 3 | flat | sampled | |
-| 64bit | efficient | v1.0 | 190 | 3 | flat | sampled | |
+| 2bit | fast | v1.0 | 2 | 1 | flat | exhaustive | |
+| 2bit | small | v1.0 | 2 | 1 | flat | exhaustive | |
+| 2bit | efficient | v1.0 | 2 | 1 | flat | exhaustive | |
+| 4bit | fast | v1.0 | 6 | 2 | flat | exhaustive | |
+| 4bit | small | v1.0 | 6 | 2 | flat | exhaustive | |
+| 4bit | efficient | v1.0 | 6 | 2 | flat | exhaustive | |
+| 8bit | fast | v1.0 | 14 | 2 | flat | exhaustive | |
+| 8bit | small | v1.0 | 14 | 2 | flat | exhaustive | |
+| 8bit | efficient | v1.0 | 14 | 2 | flat | exhaustive | |
+| 16bit | fast | v1.0 | 30 | 2 | flat | exhaustive | |
+| 16bit | small | v1.0 | 30 | 2 | flat | exhaustive | |
+| 16bit | efficient | v1.0 | 30 | 2 | flat | exhaustive | |
+| 32bit | fast | v1.0 | 62 | 2 | flat | exhaustive | |
+| 32bit | small | v1.0 | 62 | 2 | flat | exhaustive | |
+| 32bit | efficient | v1.0 | 62 | 2 | flat | exhaustive | |
+| 64bit | fast | v1.0 | 126 | 2 | flat | sampled | |
+| 64bit | small | v1.0 | 126 | 2 | flat | sampled | |
+| 64bit | efficient | v1.0 | 126 | 2 | flat | sampled | |
 
-Gates include the input gates. Up to 32 bit every input was tried. 64 bit was checked on about a million inputs. None has been tested in the game yet.
+Gates and ticks do not count the input gates (see the main README). Up to 32 bit every input was tried. 64 bit was checked on about a million inputs. None has been tested in the game yet.
 
 ## Generator
 
@@ -46,6 +46,6 @@ target/release/pareto build-all negate --write   # rebuild the slots that a desi
 The code is in `generator/src/lib.rs`.
 
 One design, `flat`: negating keeps every bit up to and including the lowest 1 and flips the ones above it. So
-bit i flips when any bit below it is 1: one OR gate over the lower bits and one XOR gate. 3 ticks at any size.
+bit i flips when any bit below it is 1: one OR gate over the lower bits and one XOR gate. 2 ticks at any size.
 
 Bit 0 never changes. It goes through a gate that only copies it, so that every output has a gate of its own.

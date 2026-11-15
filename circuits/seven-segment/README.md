@@ -23,11 +23,11 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 
 | Size | Profile | Version | Gates | Ticks | Design | Verified | Workshop |
 |---|---|---|---|---|---|---|---|
-| 4bit | fast | v1.0 | 22 | 3 | normal-form | exhaustive | |
-| 4bit | small | v1.0 | 18 | 8 | searched-small | exhaustive | |
-| 4bit | efficient | v1.0 | 22 | 3 | normal-form | exhaustive | |
+| 4bit | fast | v1.0 | 18 | 2 | normal-form | exhaustive | |
+| 4bit | small | v1.0 | 14 | 7 | searched-small | exhaustive | |
+| 4bit | efficient | v1.0 | 18 | 2 | normal-form | exhaustive | |
 
-Gates include the input gates. All 16 digits were tried. None has been tested in the game yet.
+Gates and ticks do not count the input gates (see the main README). All 16 digits were tried. None has been tested in the game yet.
 
 ## Generator
 
@@ -41,8 +41,8 @@ The code is in `generator/src/lib.rs`.
 
 | Design | Idea | Ticks |
 |---|---|---|
-| `table` | One line per digit, and every segment is an OR (or NOR) over digits | 4 |
-| `normal-form` | Every segment is one XOR gate over AND gates of plain inputs | 3 |
+| `table` | One line per digit, and every segment is an OR (or NOR) over digits | 3 |
+| `normal-form` | Every segment is one XOR gate over AND gates of plain inputs | 2 |
 | `searched-*` | Found by `optimizers/fable/resub` starting from the two above | |
 
 With one size there is nothing to generate, so the searched circuits are stored in the generator as they

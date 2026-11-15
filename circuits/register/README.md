@@ -18,38 +18,38 @@ A button or switch is too slow; send it through a one-tick pulse maker first.
 
 The gates wired to themselves start out off, so the memory starts at 0.
 
-`ticks` is the time from the write pulse to the new number on the outputs: 3. The data has to be steady for
-2 ticks before the pulse and until the tick after it.
+`ticks` is the time from the write pulse to the new number on the outputs: 2. The data has to be steady for
+1 tick before the pulse and until the tick after it.
 
 Writes can follow each other 4 ticks apart: new data, the write pulse one tick after it, and the number is
 on the outputs when the 4 ticks are over.
 
-A tick is counted from the moment an input is driven, so the input gate itself is the first tick.
+Ticks are counted as in the main README: the tick of the input gate is not counted. Gaps between two inputs, such as how far apart pulses can come, are the same either way.
 
 ## Records
 
 | Size | Profile | Version | Gates | Ticks | Design | Verified | Workshop |
 |---|---|---|---|---|---|---|---|
-| 2bit | fast | v1.0 | 9 | 3 | toggle | sampled | |
-| 2bit | small | v1.0 | 9 | 3 | toggle | sampled | |
-| 2bit | efficient | v1.0 | 9 | 3 | toggle | sampled | |
-| 4bit | fast | v1.0 | 17 | 3 | toggle | sampled | |
-| 4bit | small | v1.0 | 17 | 3 | toggle | sampled | |
-| 4bit | efficient | v1.0 | 17 | 3 | toggle | sampled | |
-| 8bit | fast | v1.0 | 33 | 3 | toggle | sampled | |
-| 8bit | small | v1.0 | 33 | 3 | toggle | sampled | |
-| 8bit | efficient | v1.0 | 33 | 3 | toggle | sampled | |
-| 16bit | fast | v1.0 | 65 | 3 | toggle | sampled | |
-| 16bit | small | v1.0 | 65 | 3 | toggle | sampled | |
-| 16bit | efficient | v1.0 | 65 | 3 | toggle | sampled | |
-| 32bit | fast | v1.0 | 129 | 3 | toggle | sampled | |
-| 32bit | small | v1.0 | 129 | 3 | toggle | sampled | |
-| 32bit | efficient | v1.0 | 129 | 3 | toggle | sampled | |
-| 64bit | fast | v1.0 | 257 | 3 | toggle | sampled | |
-| 64bit | small | v1.0 | 257 | 3 | toggle | sampled | |
-| 64bit | efficient | v1.0 | 257 | 3 | toggle | sampled | |
+| 2bit | fast | v1.0 | 6 | 2 | toggle | sampled | |
+| 2bit | small | v1.0 | 6 | 2 | toggle | sampled | |
+| 2bit | efficient | v1.0 | 6 | 2 | toggle | sampled | |
+| 4bit | fast | v1.0 | 12 | 2 | toggle | sampled | |
+| 4bit | small | v1.0 | 12 | 2 | toggle | sampled | |
+| 4bit | efficient | v1.0 | 12 | 2 | toggle | sampled | |
+| 8bit | fast | v1.0 | 24 | 2 | toggle | sampled | |
+| 8bit | small | v1.0 | 24 | 2 | toggle | sampled | |
+| 8bit | efficient | v1.0 | 24 | 2 | toggle | sampled | |
+| 16bit | fast | v1.0 | 48 | 2 | toggle | sampled | |
+| 16bit | small | v1.0 | 48 | 2 | toggle | sampled | |
+| 16bit | efficient | v1.0 | 48 | 2 | toggle | sampled | |
+| 32bit | fast | v1.0 | 96 | 2 | toggle | sampled | |
+| 32bit | small | v1.0 | 96 | 2 | toggle | sampled | |
+| 32bit | efficient | v1.0 | 96 | 2 | toggle | sampled | |
+| 64bit | fast | v1.0 | 192 | 2 | toggle | sampled | |
+| 64bit | small | v1.0 | 192 | 2 | toggle | sampled | |
+| 64bit | efficient | v1.0 | 192 | 2 | toggle | sampled | |
 
-Gates include the input gates. The three profiles hold the same build where one design wins all of them.
+Gates and ticks do not count the input gates (see the main README). The three profiles hold the same build where one design wins all of them.
 Checked on the tick simulator: 3000 rounds of random data with and without a write, on 64 copies at once, against a model.
 None has been tested in the game yet, and these lean on the simulator's tick model more than circuits without
 memory do.

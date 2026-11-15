@@ -115,7 +115,7 @@ HOW = [
     ("two-level", "Lookahead inside blocks, and a second lookahead across the blocks."),
     ("tree", "Full adders in layers bring the columns down to two rows, then a fast adder."),
     ("wide", "Counters of up to 7 bits bring the columns down in few layers, then a fast adder."),
-    ("normal-form", "Every output is one XOR gate over AND gates of plain inputs: 3 ticks."),
+    ("normal-form", "Every output is one XOR gate over AND gates of plain inputs: 2 ticks."),
     ("no-inverters", "One XOR gate over AND gates of plain inputs, so no inverter tick."),
     ("flat-nor", "One AND gate per bit position; the third output is 'neither of the others'."),
     ("flat", "One wide gate per term: gates take any number of inputs, so no stages are needed."),
@@ -201,7 +201,7 @@ def description(meta):
     if timing:
         lines.append(timing.group(0))
     lines += [
-        f"{checked(meta)} Gates include the input gates; ticks count the input gate too.",
+        f"{checked(meta)} The yellow input gates are not counted in the gates or the ticks: wire to them, or merge them away.",
         f"By: {', '.join(meta.get('authors', []))}",
         "",
         "Other sizes, the generator and the full explanation:",
