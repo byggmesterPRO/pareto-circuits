@@ -14,7 +14,7 @@ pub const SIZES: [usize; 6] = [2, 4, 8, 16, 32, 64];
 
 /// Every design for this size. The tool that makes builds measures them and picks the winners.
 pub fn designs(n: usize) -> Result<Vec<Design>, String> {
-    let mut out = vec![Design::new("ripple", ripple(n))?, Design::new("lookahead", blocks(n, n))?];
+    let mut out = vec![Design::new("ripple", ripple(n))?, Design::new("pairs", pairs(n))?, Design::new("lookahead", blocks(n, n))?];
     for k in [2, 3, 4, 6, 8, 12, 16, 24, 32] {
         if k < n {
             out.push(Design::new(format!("blocks-{k}"), blocks(n, k))?);
@@ -49,6 +49,38 @@ fn ripple(n: usize) -> Result<Netlist, String> {
             let (all, any) = (b.and(&ins), b.or(&ins));
             b.xor(&[sum, all, any])
         };
+        outs.push(sum);
+    }
+    outs.push(carry);
+    b.finish(&outs)
+}
+
+/// Two bits at a time, the carry walking from pair to pair. A pair with carry in and carry out is 7 gates,
+/// which exact search (SAT) showed is the fewest: 6 is impossible. That is 3.5 gates per bit where the full
+/// adder takes 4. The seven gates have no neat names; they are the search's answer as it came out.
+fn pairs(n: usize) -> Result<Netlist, String> {
+    let (mut b, x, y) = start(n);
+    let (mut carry, mut outs) = (S::Zero, vec![]);
+    let mut i = 0;
+    while i + 1 < n {
+        let (a0, a1, b0, b1, c) = (x[i], x[i + 1], y[i], y[i + 1], carry);
+        let low = [a0, b0, c];
+        let (any, all) = (b.or(&low), b.and(&low));
+        let high = b.xor(&[a0, a1, b0, b1, c, any, all]);
+        let g8 = b.or(&[a1, b1, high]);
+        let g9 = b.nand(&[a1, b1, any, high]);
+        let out = b.xnor(&[a0, a1, b0, b1, c, any, all, g8, g9]);
+        let sum0 = b.xnor(&[a0, b0, c, high, g8, g9, out]);
+        outs.extend([sum0, high]);
+        carry = out;
+        i += 2;
+    }
+    if i < n {
+        // an odd bit at the top gets the 4-gate full adder
+        let ins = [x[i], y[i], carry];
+        let sum = b.xor(&ins);
+        let (all, any) = (b.and(&ins), b.or(&ins));
+        carry = b.xor(&[sum, all, any]);
         outs.push(sum);
     }
     outs.push(carry);
