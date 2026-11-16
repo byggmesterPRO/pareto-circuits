@@ -21,17 +21,17 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 | 4bit | small | v1.0 | 7 | 2 | normal-form | exhaustive | |
 | 4bit | efficient | v1.0 | 7 | 2 | normal-form | exhaustive | |
 | 8bit | fast | v1.0 | 124 | 2 | normal-form | exhaustive | |
-| 8bit | small | v1.0 | 58 | 28 | ripple | exhaustive | |
+| 8bit | small | v2.0 | 46 | 24 | ripple | exhaustive | |
 | 8bit | efficient | v1.0 | 124 | 2 | normal-form | exhaustive | |
-| 16bit | fast | v1.0 | 270 | 45 | lookahead | exhaustive | |
-| 16bit | small | v1.0 | 214 | 88 | ripple | exhaustive | |
-| 16bit | efficient | v1.0 | 270 | 45 | lookahead | exhaustive | |
-| 32bit | fast | v1.0 | 1374 | 93 | lookahead | exhaustive | |
-| 32bit | small | v1.0 | 814 | 304 | ripple | exhaustive | |
-| 32bit | efficient | v1.0 | 1180 | 103 | two-level-8 | exhaustive | |
-| 64bit | fast | v1.0 | 8137 | 189 | lookahead | sampled | |
-| 64bit | small | v1.0 | 3166 | 1120 | ripple | sampled | |
-| 64bit | efficient | v1.0 | 5230 | 215 | two-level-8 | sampled | |
+| 16bit | fast | v2.0 | 228 | 27 | lookahead | exhaustive | |
+| 16bit | small | v2.0 | 158 | 80 | ripple | exhaustive | |
+| 16bit | efficient | v2.0 | 228 | 27 | lookahead | exhaustive | |
+| 32bit | fast | v2.0 | 1224 | 58 | lookahead | exhaustive | |
+| 32bit | small | v2.0 | 574 | 288 | ripple | exhaustive | |
+| 32bit | efficient | v2.0 | 1224 | 58 | lookahead | exhaustive | |
+| 64bit | fast | v2.0 | 7580 | 120 | lookahead | sampled | |
+| 64bit | small | v2.0 | 2174 | 1088 | ripple | sampled | |
+| 64bit | efficient | v2.0 | 4703 | 164 | two-level-8 | sampled | |
 
 Gates and ticks do not count the input gates (see the main README). Up to 32 bit every input was tried. 64 bit was checked on about a million inputs: random ones, perfect
 squares, and the numbers just below one and just below the next. None has been tested in the game yet.

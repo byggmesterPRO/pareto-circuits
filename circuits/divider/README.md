@@ -19,17 +19,17 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 | 2bit | small | v1.0 | 11 | 2 | normal-form | exhaustive | |
 | 2bit | efficient | v1.0 | 11 | 2 | normal-form | exhaustive | |
 | 4bit | fast | v1.0 | 149 | 2 | normal-form | exhaustive | |
-| 4bit | small | v1.0 | 56 | 26 | ripple | exhaustive | |
+| 4bit | small | v2.0 | 48 | 27 | ripple | exhaustive | |
 | 4bit | efficient | v1.0 | 149 | 2 | normal-form | exhaustive | |
-| 8bit | fast | v1.0 | 299 | 47 | lookahead | exhaustive | |
-| 8bit | small | v1.0 | 208 | 82 | ripple | exhaustive | |
-| 8bit | efficient | v2.0 | 275 | 51 | two-level-4 | exhaustive | |
-| 16bit | fast | v1.0 | 1495 | 95 | lookahead | exhaustive | |
-| 16bit | small | v1.0 | 800 | 290 | ripple | exhaustive | |
-| 16bit | efficient | v1.0 | 1165 | 107 | two-level-4 | exhaustive | |
-| 32bit | fast | v1.0 | 8653 | 191 | lookahead | sampled | |
-| 32bit | small | v1.0 | 3136 | 1090 | ripple | sampled | |
-| 32bit | efficient | v1.0 | 5305 | 219 | two-level-4 | sampled | |
+| 8bit | fast | v2.0 | 265 | 29 | lookahead | exhaustive | |
+| 8bit | small | v2.0 | 160 | 83 | ripple | exhaustive | |
+| 8bit | efficient | v3.0 | 265 | 29 | lookahead | exhaustive | |
+| 16bit | fast | v2.0 | 1361 | 60 | lookahead | exhaustive | |
+| 16bit | small | v2.0 | 576 | 291 | ripple | exhaustive | |
+| 16bit | efficient | v2.0 | 1117 | 70 | blocks-8 | exhaustive | |
+| 32bit | fast | v2.0 | 8166 | 123 | lookahead | sampled | |
+| 32bit | small | v2.0 | 2176 | 1091 | ripple | sampled | |
+| 32bit | efficient | v2.0 | 4951 | 163 | two-level-8 | sampled | |
 
 Gates and ticks do not count the input gates (see the main README). Up to 16 bit every input was tried. 32 bit was checked on about a million inputs: random ones, divisors of
 every length, and numbers just below, at and just above a multiple of the divisor. None has been tested in the game yet.
@@ -47,11 +47,16 @@ The code is in `generator/src/lib.rs`.
 Long division, one row per quotient bit from the top: bring down the next bit of a, and if what is left is at
 least b, take b away. What is left after row k fits in k + 1 bits, so the rows start narrow.
 
-A row is 6 gates per bit with a walking borrow: 3 for the borrow (the fewest, by exact search), one for "this
-bit changes if we subtract", one AND with "we do subtract", and one XOR.
+Taking b away flips some bits of what is left. So a bit of what is left is never joined into one signal: it
+is handed on as the list of signals whose XOR it is (the bit of a, and one "this bit flips" per row so far),
+and the XOR gates of the next row read the whole list. Only the remainder outputs join them.
+
+A row is 4 gates per bit with a walking borrow: "this bit changes if we subtract" (b xor the borrow in),
+"what is left equals b here", the AND of those two, and the flip (an AND with "we do subtract"). The borrow
+out is b xor that AND, and is handed on as those two signals.
 
 | Design | How a row finds out whether it can subtract |
 |---|---|
 | `ripple` | The borrow walks along the row. Fewest gates, and the ticks grow with n x n. |
-| `lookahead`, `blocks-k`, `two-level-k` | One of the adder family's carry networks: 6 ticks per row or a little more |
+| `lookahead`, `blocks-k`, `two-level-k` | One of the adder family's carry networks. The flip is one NOR gate over the borrow's terms, so a row is 4 ticks or a little more |
 | `normal-form` | No rows: every output is one XOR gate over AND gates of plain inputs (up to 4bit) |
