@@ -22,20 +22,20 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 | 2bit | small | v1.0 | 6 | 3 | ripple | exhaustive | |
 | 2bit | efficient | v1.0 | 6 | 3 | ripple | exhaustive | |
 | 4bit | fast | v1.0 | 18 | 3 | lookahead | exhaustive | |
-| 4bit | small | v2.0 | 13 | 9 | pairs | exhaustive | |
+| 4bit | small | v3.0 | 12 | 8 | sum-carry | exhaustive | |
 | 4bit | efficient | v1.0 | 18 | 3 | lookahead | exhaustive | |
-| 8bit | fast | v1.0 | 52 | 3 | lookahead | exhaustive | |
-| 8bit | small | v2.0 | 27 | 17 | pairs | exhaustive | |
-| 8bit | efficient | v1.0 | 52 | 3 | lookahead | exhaustive | |
-| 16bit | fast | v1.0 | 168 | 3 | lookahead | exhaustive | |
-| 16bit | small | v2.0 | 55 | 33 | pairs | exhaustive | |
-| 16bit | efficient | v1.0 | 168 | 3 | lookahead | exhaustive | |
-| 32bit | fast | v1.0 | 595 | 3 | lookahead | sampled | |
-| 32bit | small | v2.0 | 111 | 65 | pairs | sampled | |
-| 32bit | efficient | v1.0 | 263 | 5 | two-level-8 | sampled | |
-| 64bit | fast | v1.0 | 2346 | 3 | lookahead | sampled | |
-| 64bit | small | v2.0 | 223 | 129 | pairs | sampled | |
-| 64bit | efficient | v1.0 | 655 | 5 | two-level-8 | sampled | |
+| 8bit | fast | v1.1 | 49 | 3 | clauses | exhaustive | |
+| 8bit | small | v3.0 | 24 | 16 | sum-carry | exhaustive | |
+| 8bit | efficient | v1.1 | 49 | 3 | clauses | exhaustive | |
+| 16bit | fast | v1.1 | 133 | 3 | clauses | exhaustive | |
+| 16bit | small | v3.0 | 48 | 32 | sum-carry | exhaustive | |
+| 16bit | efficient | v2.0 | 93 | 4 | factors | exhaustive | |
+| 32bit | fast | v1.1 | 365 | 3 | clauses | sampled | |
+| 32bit | small | v3.0 | 96 | 64 | sum-carry | sampled | |
+| 32bit | efficient | v2.0 | 220 | 4 | factors | sampled | |
+| 64bit | fast | v1.1 | 1041 | 3 | clauses | sampled | |
+| 64bit | small | v3.0 | 192 | 128 | sum-carry | sampled | |
+| 64bit | efficient | v2.0 | 518 | 4 | factors | sampled | |
 
 Gates and ticks do not count the input gates (see the main README). Up to 16 bit every input was tried (4.3 billion at 16 bit). At 32 and 64 bit
 there are too many, so they were checked on about a million inputs: random ones, edge cases, and every carry
