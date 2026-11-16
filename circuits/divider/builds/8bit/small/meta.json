@@ -2,9 +2,9 @@
   "authors": [
     "byggmesterPRO"
   ],
-  "date": "2026-11-10",
+  "date": "2026-11-16",
   "family": "divider",
-  "gates": 208,
+  "gates": 160,
   "notes": "Generator design: ripple.",
   "optimal": "best-known",
   "pins": {
@@ -27,29 +27,29 @@
       15
     ],
     "outputs": [
-      200,
-      156,
-      118,
-      86,
-      60,
-      40,
-      26,
-      18,
-      202,
-      205,
-      208,
-      211,
-      214,
-      217,
-      220,
-      223
+      159,
+      127,
+      99,
+      75,
+      55,
+      39,
+      27,
+      19,
+      168,
+      169,
+      170,
+      171,
+      172,
+      173,
+      174,
+      175
     ]
   },
   "profile": "small",
   "size": "8bit",
   "source": "generator",
-  "ticks": 82,
+  "ticks": 83,
   "verified": "exhaustive",
-  "version": "1.0",
+  "version": "2.0",
   "workshop": ""
 }
