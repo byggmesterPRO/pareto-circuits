@@ -124,6 +124,7 @@ dependencies = [
 name = "multiplier-generator"
 version = "0.1.0"
 dependencies = [
+ "adder-generator",
  "logic-sim",
 ]
 

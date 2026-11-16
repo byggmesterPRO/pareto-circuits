@@ -299,3 +299,25 @@ fn with_mode(n: usize, adder: &Netlist) -> Result<Netlist, String> {
     outs.push(if m % 3 == logic_sim::build::XOR { b.gate(*m, &[xs.as_slice(), &[mode]].concat()) } else { b.xor(&[sig[top], mode]) });
     b.finish(&outs)
 }
+
+/// Put an adder into a circuit that is being built: x and y are the two numbers, as signals of that circuit
+/// (a constant where a bit is missing; the gates it would feed fold away). Gives the sum bits and the carry.
+pub fn graft(b: &mut Builder, adder: &Netlist, x: &[S], y: &[S]) -> Vec<S> {
+    let w = x.len();
+    let mut sig: Vec<S> = vec![];
+    let at = |i: u32, sig: &[S]| -> S {
+        let i = i as usize;
+        if i < w {
+            x[i]
+        } else if i < 2 * w {
+            y[i - w]
+        } else {
+            sig[i - 2 * w]
+        }
+    };
+    for (mode, ins) in &adder.gates {
+        let xs: Vec<S> = ins.iter().map(|&i| at(i, &sig)).collect();
+        sig.push(b.gate(*mode, &xs));
+    }
+    adder.outputs.iter().map(|o| o.map_or(S::Zero, |i| at(i, &sig))).collect()
+}

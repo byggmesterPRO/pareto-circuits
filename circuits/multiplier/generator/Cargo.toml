@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 logic-sim = { path = "../../../tools/logic-sim" }
+adder-generator = { path = "../../adder/generator" }
