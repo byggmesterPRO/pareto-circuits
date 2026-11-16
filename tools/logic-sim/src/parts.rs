@@ -38,6 +38,12 @@ pub enum Carry {
 /// Bit j starts a carry when all of `generate[j]` are on, and passes one on when `pass[j]` is on. The two
 /// must never be on together. For an adder that is generate = [a, b], pass = a xor b.
 pub fn carries(b: &mut Builder, generate: &[Vec<S>], pass: &[S], carry: Carry) -> Vec<Vec<S>> {
+    carries_as(b, generate, pass, carry, false)
+}
+
+/// `carries`, and with `open` the carry out of the top bit is always given as its terms, never joined into
+/// one signal first. That saves a gate and a tick when the reader takes the terms anyway.
+pub fn carries_as(b: &mut Builder, generate: &[Vec<S>], pass: &[S], carry: Carry, open: bool) -> Vec<Vec<S>> {
     let n = pass.len();
     let mut out = vec![];
     match carry {
@@ -52,6 +58,9 @@ pub fn carries(b: &mut Builder, generate: &[Vec<S>], pass: &[S], carry: Carry) -
                     }
                     if i < e {
                         out.push(terms);
+                    } else if open && e == n {
+                        out.push(terms);
+                        return out;
                     } else {
                         carry_in = b.xor(&terms);
                     }
@@ -186,39 +195,56 @@ pub fn add_sub(b: &mut Builder, x: &[S], y: &[S], mode: S, carry: Option<Carry>)
 
 /// One row of a divider or a square root: if r is at least t, and nothing in `high` is on, take t from r.
 /// Gives "did subtract" and the new r. r and t are least significant bit first; the shorter is padded with
-/// zeros. Per bit: the borrow, one gate for "this bit changes if we subtract" (t xor borrow), one AND with
-/// "did subtract", and one XOR onto r.
-pub fn subtract_if(b: &mut Builder, r: &[S], t: &[S], high: &[S], carry: Option<Carry>) -> (S, Vec<S>) {
+/// zeros.
+///
+/// A bit of r is a list of signals whose XOR it is. Taking t away flips some bits of r, so the new r is the
+/// old list with one more signal, "this bit flips", and no gate is spent on joining them: the gates of the
+/// next row that read r are XOR gates and take the whole list.
+///
+/// With the borrow walking (`carry` None) a bit is 4 gates: "this bit changes if we subtract" (t xor the
+/// borrow in), "r equals t here", the AND of those two, and the flip. The borrow out is t xor that AND.
+/// With a carry network a bit is 4 gates and its share of the network, and a row is 4 ticks.
+pub fn subtract_if(b: &mut Builder, r: &[Vec<S>], t: &[S], high: &[S], carry: Option<Carry>) -> (S, Vec<Vec<S>>) {
     let w = r.len().max(t.len());
     let at = |v: &[S], j: usize| v.get(j).copied().unwrap_or(S::Zero);
-    let borrows: Vec<Vec<S>> = match carry {
-        None => {
-            // the borrow walks up, 3 gates per bit (the fewest, by exact search)
-            let mut out = vec![vec![S::Zero]];
-            for j in 0..w {
-                let ins = [at(r, j), at(t, j), out[j][0]];
-                let (not_all, any) = (b.nand(&ins), b.or(&ins));
-                out.push(vec![b.xnor(&[ins[0], not_all, any])]);
-            }
-            out
-        }
-        Some(carry) => {
-            let same: Vec<S> = (0..w).map(|j| b.xnor(&[at(r, j), at(t, j)])).collect();
-            let starts: Vec<Vec<S>> = (0..w).map(|j| vec![b.not(at(r, j)), at(t, j)]).collect();
-            carries(b, &starts, &same, carry)
-        }
+    let with = |b: &mut Builder, j: usize, invert: bool, also: S| -> S {
+        let mut xs = r.get(j).cloned().unwrap_or_default();
+        xs.push(also);
+        if invert { b.xnor(&xs) } else { b.xor(&xs) }
     };
+    let mut next: Vec<Vec<S>> = (0..w).map(|j| r.get(j).cloned().unwrap_or_default()).collect();
+    let Some(carry) = carry else {
+        let mut borrow = vec![S::Zero];
+        let mut changes = vec![];
+        for j in 0..w {
+            borrow.push(at(t, j));
+            let change = b.xor(&borrow);
+            let same = with(b, j, true, at(t, j));
+            borrow = vec![at(t, j), b.and(&[change, same])];
+            changes.push(change);
+        }
+        // the two parts of the last borrow can be on together, so they are joined before the NOR
+        let mut blocked = vec![b.xor(&borrow)];
+        blocked.extend_from_slice(high);
+        let did = b.nor(&blocked);
+        for j in 0..w {
+            next[j].push(b.and(&[did, changes[j]]));
+        }
+        return (did, next);
+    };
+    let same: Vec<S> = (0..w).map(|j| with(b, j, true, at(t, j))).collect();
+    let starts: Vec<Vec<S>> = (0..w).map(|j| vec![with(b, j, true, S::Zero), at(t, j)]).collect();
+    let borrows = carries_as(b, &starts, &same, carry, true);
     let mut blocked = borrows[w].clone();
     blocked.extend_from_slice(high);
     let did = b.nor(&blocked);
-    let next = (0..w)
-        .map(|j| {
-            let mut xs = borrows[j].clone();
-            xs.push(at(t, j));
-            let changes = b.xor(&xs);
-            let flip = b.and(&[did, changes]);
-            b.xor(&[at(r, j), flip])
-        })
-        .collect();
+    for j in 0..w {
+        let mut xs = borrows[j].clone();
+        xs.push(at(t, j));
+        let stays = b.xnor(&xs);
+        let mut all = blocked.clone();
+        all.push(stays);
+        next[j].push(b.nor(&all));
+    }
     (did, next)
 }

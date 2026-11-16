@@ -35,11 +35,12 @@ pub fn designs(n: usize) -> Result<Vec<Design>, String> {
 fn build(n: usize, carry: Option<Carry>) -> Result<Netlist, String> {
     let mut b = Builder::new(n);
     let x = inputs(&b, 0, n);
-    let mut left: Vec<S> = vec![];
+    // what is left, each bit as signals whose XOR it is
+    let mut left: Vec<Vec<S>> = vec![];
     // the root so far, lowest bit first
     let mut root: Vec<S> = vec![];
     for k in 0..n / 2 {
-        let mut row = vec![x[n - 2 - 2 * k], x[n - 1 - 2 * k]];
+        let mut row = vec![vec![x[n - 2 - 2 * k]], vec![x[n - 1 - 2 * k]]];
         row.extend_from_slice(&left);
         let mut take = vec![S::One, S::Zero];
         take.extend_from_slice(&root);

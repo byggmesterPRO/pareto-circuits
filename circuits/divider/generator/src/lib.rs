@@ -35,16 +35,19 @@ pub fn designs(n: usize) -> Result<Vec<Design>, String> {
 fn build(n: usize, carry: Option<Carry>) -> Result<Netlist, String> {
     let mut b = Builder::new(2 * n);
     let (x, y) = (inputs(&b, 0, n), inputs(&b, n, n));
-    let mut left: Vec<S> = vec![];
+    // what is left, each bit as signals whose XOR it is
+    let mut left: Vec<Vec<S>> = vec![];
     let mut quotient = vec![S::Zero; n];
     for k in 0..n {
         let i = n - 1 - k;
-        let mut row = vec![x[i]];
+        let mut row = vec![vec![x[i]]];
         row.extend_from_slice(&left);
         let (did, next) = subtract_if(&mut b, &row, &y[..=k], &y[k + 1..], carry);
         quotient[i] = did;
         left = next;
     }
-    quotient.extend(left);
+    for bit in left {
+        quotient.push(b.xor(&bit));
+    }
     b.finish(&quotient)
 }
