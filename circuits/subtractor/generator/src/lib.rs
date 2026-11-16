@@ -28,7 +28,34 @@ pub fn designs(n: usize) -> Result<Vec<Design>, String> {
         let f = family("subtractor", &format!("{n}bit"))?;
         offer(&mut out, "normal-form", normal_form(2 * n, n + 1, &*f.f));
     }
+    out.push(Design::new("sum-carry", sum_carry(n))?);
+    // the adder search's designs, as subtractors
+    for d in adder_generator::minus_designs(n)? {
+        let size = |net: &Netlist| (net.gates.len(), net.outputs.len());
+        if !out.iter().any(|o| o.name == d.name || (size(&o.netlist) == size(&d.netlist) && o.netlist.gates == d.netlist.gates)) {
+            out.push(d);
+        }
+    }
     Ok(out)
+}
+
+/// Three gates per bit, the smallest known. The borrow out of a bit is read back from its difference d:
+/// borrow = a xor or(a, b, d) xor and(a, b, d). The XOR that would join the three is never built: the next
+/// difference bit is one wide XOR over a, b and the three terms. Found for the adder by search
+/// (tools/evolve/tasks/adder), and it carries over with a in the place of the sum bit.
+fn sum_carry(n: usize) -> Result<Netlist, String> {
+    let mut b = Builder::new(2 * n);
+    let (x, y) = (inputs(&b, 0, n), inputs(&b, n, n));
+    let mut outs = vec![b.xor(&[x[0], y[0]])];
+    // the lowest bit borrows when a is off and b is on: b xor (a and b)
+    let mut terms = vec![y[0], b.and(&[x[0], y[0]])];
+    for i in 1..n {
+        let d = b.xor(&[&[x[i], y[i]], terms.as_slice()].concat());
+        outs.push(d);
+        terms = vec![x[i], b.or(&[x[i], y[i], d]), b.and(&[x[i], y[i], d])];
+    }
+    outs.push(b.xor(&terms));
+    b.finish(&outs)
 }
 
 /// One full subtractor per bit, the borrow walking up. The cell is 4 gates, the fewest there is (exact

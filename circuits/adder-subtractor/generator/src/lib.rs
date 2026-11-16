@@ -6,6 +6,9 @@
 //! Subtracting is adding the inverse of b plus one. So b goes through one XOR gate per bit with the mode, the
 //! mode is the carry into the lowest bit, and the rest is an adder with any of the adder family's carry
 //! networks. The code is `add_sub` in `tools/logic-sim/src/parts.rs`, which the ALU uses too.
+//!
+//! The designs the adder search found (`sum-carry`, `clauses`, `factors`, `within-T`) are here too, made by
+//! `mode_designs` in the adder generator.
 
 use logic_sim::build::{Builder, Design, Netlist};
 use logic_sim::parts::{add_sub, inputs, Carry};
@@ -24,6 +27,8 @@ pub fn designs(n: usize) -> Result<Vec<Design>, String> {
             out.push(Design::new(format!("two-level-{k}"), build(n, Some(Carry::TwoLevel(k))))?);
         }
     }
+    // the adder search's designs, with the mode pin
+    out.extend(adder_generator::mode_designs(n)?);
     Ok(out)
 }
 

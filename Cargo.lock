@@ -20,6 +20,7 @@ dependencies = [
 name = "adder-subtractor-generator"
 version = "0.1.0"
 dependencies = [
+ "adder-generator",
  "logic-sim",
 ]
 
@@ -263,6 +264,7 @@ dependencies = [
 name = "subtractor-generator"
 version = "0.1.0"
 dependencies = [
+ "adder-generator",
  "logic-sim",
 ]
 

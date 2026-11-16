@@ -10,7 +10,7 @@
 //! step above, or lookahead from a "source" lower down (a carry, its terms, or the sum at the source bit),
 //! optionally over group generates. It keeps the cheapest plans for every depth it can still afford.
 
-use crate::net::{FxMap as HashMap, Net};
+use crate::net::{ticks, FxMap as HashMap, Net};
 use logic_sim::build::{AND, OR, XOR};
 use std::rc::Rc;
 
@@ -119,16 +119,18 @@ fn st_str(s: &St) -> String {
 struct Cover {
     ends: HashMap<usize, Vec<(usize, usize)>>,
     lam: f64,
+    /// what a single bit that starts a carry costs on top of its gate (for a - b: its inverter)
+    inv: f64,
     memo: HashMap<(usize, usize, usize), Option<(f64, Rc<Vec<Seg>>)>>,
 }
 
 impl Cover {
-    fn new(blocks: &Blocks, lam: f64) -> Cover {
+    fn new(blocks: &Blocks, lam: f64, inv: f64) -> Cover {
         let mut ends: HashMap<usize, Vec<(usize, usize)>> = HashMap::default();
         for &((u, v), d, _) in blocks {
             ends.entry(v).or_default().push((u, d));
         }
-        Cover { ends, lam, memo: HashMap::default() }
+        Cover { ends, lam, inv, memo: HashMap::default() }
     }
 
     /// XOR terms for the generate of bits lo .. j at depth at most d: (cost, segments).
@@ -136,15 +138,15 @@ impl Cover {
         if let Some(r) = self.memo.get(&(lo, j, d)) {
             return r.clone();
         }
-        let lam = self.lam;
+        let (lam, one) = (self.lam, 1.0 + self.inv);
         let inf = f64::INFINITY;
         let mut f = vec![inf; j + 1];
         let mut back = vec![usize::MAX; j + 1];
         f[lo] = 0.0;
         let none = vec![];
         for w in lo + 1..j {
-            if d >= 2 && f[w - 1] + 1.0 < f[w] {
-                f[w] = f[w - 1] + 1.0;
+            if d >= 2 && f[w - 1] + one < f[w] {
+                f[w] = f[w - 1] + one;
                 back[w] = w - 1;
             }
             for &(u, bd) in self.ends.get(&w).unwrap_or(&none) {
@@ -156,7 +158,7 @@ impl Cover {
         }
         let mut best: Option<(f64, usize)> = None;
         if d >= 1 && f[j - 1] < inf {
-            best = Some((f[j - 1] + 1.0, j - 1));
+            best = Some((f[j - 1] + one, j - 1));
         }
         for &(u, bd) in self.ends.get(&j).unwrap_or(&none) {
             if u >= lo && bd <= d && f[u] < inf && best.is_none_or(|b| f[u] + lam < b.0) {
@@ -211,10 +213,12 @@ fn prune(states: OMap) -> OMap {
 
 type LaOpts = Rc<Vec<(usize, f64, Segs)>>;
 
-fn plan(n: usize, t: usize, blocks: &Blocks, lam: f64) -> Option<Vec<(usize, Tag, How)>> {
+fn plan(n: usize, t: usize, blocks: &Blocks, lam: f64, inv: f64, sub: bool) -> Option<Vec<(usize, Tag, How)>> {
+    // a sum as the source costs its OR gate. For a - b also "a equals b" and the sum's inverse.
+    let sum_cost = if sub { 3.0 } else { 1.0 };
     const W: usize = 8;
     const BEAM: usize = 400;
-    let mut cover = Cover::new(blocks, lam);
+    let mut cover = Cover::new(blocks, lam, inv);
     // from this depth on the cover cannot change, so deeper limits add no option
     let flat = blocks.iter().map(|b| b.1 + 1).max().unwrap_or(0).max(2);
     let mut front: HashMap<(usize, usize), LaOpts> = HashMap::default();
@@ -291,7 +295,7 @@ fn plan(n: usize, t: usize, blocks: &Blocks, lam: f64) -> Option<Vec<(usize, Tag
                     } else {
                         ch.push(([src, kind, ksrc, dsrc, l + 1, pk2], base, How::Keep));
                     }
-                    ch.push(([j, 2, 1, l + 1, l + 1, j - 1], base + 1.0, How::Sum));
+                    ch.push(([j, 2, 1, l + 1, l + 1, j - 1], base + sum_cost, How::Sum));
                     if k == 1 {
                         ch.push(([j, 1, 1, l, l + 1, j - 1], base, How::Mat));
                     } else {
@@ -444,9 +448,9 @@ impl Realize {
     }
 }
 
-fn realize(n: usize, steps: &[(usize, Tag, How)], blocks: &Blocks) -> (Net, Vec<u32>) {
+fn realize(n: usize, steps: &[(usize, Tag, How)], blocks: &Blocks, sub: bool) -> (Net, Vec<u32>) {
     let nn = n as u32;
-    let mut r = Realize { n: nn, net: Net::new(n), p: vec![None; n], x: HashMap::default(), kinds: blocks.iter().map(|&(uv, _, k)| (uv, k)).collect() };
+    let mut r = Realize { n: nn, net: if sub { Net::wide(n) } else { Net::new(n) }, p: vec![None; n], x: HashMap::default(), kinds: blocks.iter().map(|&(uv, _, k)| (uv, k)).collect() };
     let mut outs = vec![r.p(0)];
     let (mut src, mut srcsig) = (0usize, Src::None);
     for (j, tag, how) in steps {
@@ -456,7 +460,13 @@ fn realize(n: usize, steps: &[(usize, Tag, How)], blocks: &Blocks) -> (Net, Vec<
             Tag::R => {
                 let s = outs[j - 1];
                 let (a, b) = (j as u32 - 1, nn + j as u32 - 1);
-                c = vec![s, r.net.g(OR, &[a, b, s]), r.net.g(AND, &[a, b, s])];
+                c = if sub {
+                    // a - b: the borrow out is a xor or(a, b, d) xor and(a, b, d), d the difference bit
+                    let (a, d) = (2 * nn + a, r.net.inverse(s));
+                    vec![a, r.net.g(OR, &[a, b, d]), r.net.g(AND, &[a, b, d])]
+                } else {
+                    vec![s, r.net.g(OR, &[a, b, s]), r.net.g(AND, &[a, b, s])]
+                };
             }
             Tag::S(segs) => {
                 let Src::Sum(s, t) = srcsig else { unreachable!("a sum source") };
@@ -550,26 +560,42 @@ fn block_sets(n: usize, t: usize) -> Vec<Blocks> {
     out
 }
 
+/// Gates and ticks of a plan as it will be built. For a - b that is after `minus`, which adds inverters.
+fn size(n: usize, net: &Net, outs: &[u32], sub: bool) -> Option<(usize, usize)> {
+    if !sub {
+        return Some((net.gates.len(), net.depth(outs) as usize));
+    }
+    let m = crate::minus::minus(n, net.inputs(), &net.gates, outs).ok()?;
+    Some((m.gates.len(), ticks(&m)))
+}
+
+type Built = (usize, Net, Vec<u32>);
+
 /// The smallest plan for these group generates, built: (gates, net, outputs).
-fn try_blocks(n: usize, t: usize, bl: &Blocks) -> Option<(Net, Vec<u32>)> {
-    let mut best: Option<(Net, Vec<u32>)> = None;
+fn try_blocks(n: usize, t: usize, bl: &Blocks, sub: bool) -> Option<Built> {
+    let mut best: Option<Built> = None;
     let lams: &[f64] = if bl.is_empty() { &[0.0] } else { &[0.0, 0.5] };
+    let invs: &[f64] = if sub { &[0.0, 1.0] } else { &[0.0] };
     for &lam in lams {
-        let Some(steps) = plan(n, t, bl, lam) else { continue };
-        let (net, outs) = realize(n, &steps, bl);
-        if net.depth(&outs) as usize <= t && best.as_ref().is_none_or(|b| net.gates.len() < b.0.gates.len()) {
-            best = Some((net, outs));
+        for &inv in invs {
+            let Some(steps) = plan(n, t, bl, lam, inv, sub) else { continue };
+            let (net, outs) = realize(n, &steps, bl, sub);
+            let Some((gates, depth)) = size(n, &net, &outs, sub) else { continue };
+            if depth <= t && best.as_ref().is_none_or(|b| gates < b.0) {
+                best = Some((gates, net, outs));
+            }
         }
     }
     best
 }
 
 /// Construction (b): the smallest adder the planner finds that is at most t ticks deep (t >= 3).
-pub fn within(n: usize, t: usize) -> Option<(Net, Vec<u32>)> {
-    let mut best: Option<((Net, Vec<u32>), Blocks)> = None;
+/// `sub`: for a - b. The result is then an adder of "not a" and b, to be handed to `minus`.
+pub fn within(n: usize, t: usize, sub: bool) -> Option<(Net, Vec<u32>)> {
+    let mut best: Option<(Built, Blocks)> = None;
     for bl in block_sets(n, t) {
-        if let Some(r) = try_blocks(n, t, &bl) {
-            if best.as_ref().is_none_or(|b| r.0.gates.len() < b.0.0.gates.len()) {
+        if let Some(r) = try_blocks(n, t, &bl, sub) {
+            if best.as_ref().is_none_or(|b| r.0 < b.0.0) {
                 best = Some((r, bl));
             }
         }
@@ -596,8 +622,8 @@ pub fn within(n: usize, t: usize) -> Option<(Net, Vec<u32>)> {
                         b2.push(((u, v), d, kind));
                     }
                     budget -= 1;
-                    if let Some(r) = try_blocks(n, t, &b2) {
-                        if r.0.gates.len() < best.as_ref().unwrap().0.0.gates.len() {
+                    if let Some(r) = try_blocks(n, t, &b2, sub) {
+                        if r.0 < best.as_ref().unwrap().0.0 {
                             bl = b2.clone();
                             best = Some((r, b2));
                             improved = true;
@@ -607,5 +633,5 @@ pub fn within(n: usize, t: usize) -> Option<(Net, Vec<u32>)> {
             }
         }
     }
-    best.map(|b| b.0)
+    best.map(|b| (b.0.1, b.0.2))
 }

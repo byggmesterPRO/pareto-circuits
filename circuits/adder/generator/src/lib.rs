@@ -11,6 +11,7 @@
 use logic_sim::build::{Builder, Design, Netlist, S};
 
 mod factors;
+mod minus;
 mod net;
 mod sum_carry;
 
@@ -56,7 +57,7 @@ fn new_designs(n: usize) -> Result<Vec<Design>, String> {
     let mut best: Option<Netlist> = None; // the smallest so far that fits the limit
     for t in LIMITS.into_iter().filter(|&t| t < 2 * n) {
         let mut cands: Vec<Netlist> = quick.iter().filter(|q| net::ticks(q) <= t).cloned().collect();
-        if let Some((net, outs)) = sum_carry::within(n, t) {
+        if let Some((net, outs)) = sum_carry::within(n, t, false) {
             cands.push(net.finish(&outs).map_err(|e| format!("within-{t}: {e}"))?);
         }
         cands.extend(best.take());
@@ -204,5 +205,97 @@ fn two_level(n: usize, k: usize) -> Result<Netlist, String> {
     }
     let terms = from_below(&mut b, ranges.len(), &[]);
     outs.push(b.xor(&terms));
+    b.finish(&outs)
+}
+
+/// The search's designs turned into subtractors, a - b, for the subtractor family: `clauses`, `factors` and
+/// `within-T`, where T is the ticks the subtractor really takes. Only the ones no other beats are given.
+pub fn minus_designs(n: usize) -> Result<Vec<Design>, String> {
+    let mut all: Vec<(String, Netlist)> = vec![];
+    for (name, t) in [("clauses", 3), ("factors", 4)] {
+        if let Some(net) = factors::fast(n, t) {
+            let outs: Vec<u32> = net.outputs.iter().flatten().copied().collect();
+            all.push((name.into(), minus::minus(n, net.inputs, &net.gates, &outs)?));
+        }
+    }
+    for t in [3, 4].into_iter().chain(LIMITS).filter(|&t| t <= 2 * n) {
+        if let Some((net, outs)) = sum_carry::within(n, t, true) {
+            all.push(("within".into(), minus::minus(n, net.inputs(), &net.gates, &outs)?));
+        }
+    }
+    Ok(unbeaten(all))
+}
+
+/// The designs that no other in the list beats on both gates and ticks. A `within` design is named by the
+/// ticks it really takes.
+fn unbeaten(all: Vec<(String, Netlist)>) -> Vec<Design> {
+    let size = |net: &Netlist| (net.gates.len(), net::ticks(net));
+    let mut out: Vec<Design> = vec![];
+    for (i, (name, net)) in all.iter().enumerate() {
+        let (g, t) = size(net);
+        let beaten = all.iter().enumerate().any(|(k, (_, o))| {
+            let (g2, t2) = size(o);
+            (g2 <= g && t2 <= t) && ((g2, t2) != (g, t) || k < i)
+        });
+        if !beaten {
+            let name = if name.starts_with("within") { format!("within-{t}") } else { name.clone() };
+            out.push(Design { name, netlist: net.clone() });
+        }
+    }
+    out
+}
+
+/// The search's designs with a mode pin, for the adder-subtractor family: a + b, or a - b when the mode is on.
+///
+/// a - b is a + "not b" + 1. A carry in comes for free from an adder one bit longer: with the mode as both
+/// inputs of its lowest bit, that bit adds nothing and carries exactly when the mode is on. b goes through
+/// one XOR with the mode per bit, and an XOR gate that reads it takes b and the mode themselves instead.
+/// The last output is the carry of an addition or the borrow of a subtraction: the carry xor the mode.
+pub fn mode_designs(n: usize) -> Result<Vec<Design>, String> {
+    let mut all = vec![];
+    for d in designs(n + 1)? {
+        if ["pairs", "sum-carry", "clauses", "factors"].contains(&d.name.as_str()) || d.name.starts_with("within") {
+            all.push((d.name, with_mode(n, &d.netlist)?));
+        }
+    }
+    Ok(unbeaten(all))
+}
+
+fn with_mode(n: usize, adder: &Netlist) -> Result<Netlist, String> {
+    let wide = n + 1;
+    let mut b = Builder::new(2 * n + 1);
+    let mode = b.input(2 * n);
+    let mut made: Vec<(u8, Vec<S>)> = vec![];
+    let mut sig: Vec<S> = vec![];
+    for (m, ins) in &adder.gates {
+        let mut xs: Vec<S> = vec![];
+        for &i in ins {
+            let i = i as usize;
+            if i == 0 || i == wide {
+                xs.push(mode);
+            } else if i < wide {
+                xs.push(b.input(i - 1));
+            } else if i < 2 * wide {
+                let bit = b.input(n + i - wide - 1);
+                if m % 3 == logic_sim::build::XOR {
+                    xs.extend([bit, mode]);
+                } else {
+                    xs.push(b.xor(&[bit, mode]));
+                }
+            } else {
+                xs.push(sig[i - 2 * wide]);
+            }
+        }
+        sig.push(b.gate(*m, &xs));
+        made.push((*m, xs));
+    }
+    let gate = |o: Option<u32>| (o.ok_or("an output that is always off")? as usize).checked_sub(2 * wide).ok_or("an output that is an input".to_string());
+    let mut outs = vec![];
+    for k in 1..wide {
+        outs.push(sig[gate(adder.outputs[k])?]);
+    }
+    let top = gate(adder.outputs[wide])?;
+    let (m, xs) = &made[top];
+    outs.push(if m % 3 == logic_sim::build::XOR { b.gate(*m, &[xs.as_slice(), &[mode]].concat()) } else { b.xor(&[sig[top], mode]) });
     b.finish(&outs)
 }

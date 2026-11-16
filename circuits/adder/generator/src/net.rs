@@ -52,6 +52,21 @@ impl Net {
         Net { inputs: 2 * n, gates: vec![], key: FxMap::default(), dep: vec![0; 2 * n] }
     }
 
+    /// For a - b: a third row of inputs, 2n .. 3n-1, that stands for the plain a while 0 .. n-1 is "not a".
+    pub fn wide(n: usize) -> Net {
+        Net { inputs: 3 * n, gates: vec![], key: FxMap::default(), dep: vec![0; 3 * n] }
+    }
+
+    pub fn inputs(&self) -> usize {
+        self.inputs
+    }
+
+    /// The opposite of a gate: the same inputs, the inverted mode.
+    pub fn inverse(&mut self, s: u32) -> u32 {
+        let (mode, ins) = self.gates[s as usize - self.inputs].clone();
+        self.g((mode + 3) % 6, &ins)
+    }
+
     /// A gate over the signals, or the equal gate made before.
     pub fn g(&mut self, mode: u8, ins: &[u32]) -> u32 {
         let mut ins = ins.to_vec();
