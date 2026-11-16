@@ -2,9 +2,9 @@
   "authors": [
     "byggmesterPRO"
   ],
-  "date": "2026-11-10",
+  "date": "2026-11-16",
   "family": "square-root",
-  "gates": 1374,
+  "gates": 1224,
   "notes": "Generator design: lookahead.",
   "optimal": "best-known",
   "pins": {
@@ -43,29 +43,29 @@
       31
     ],
     "outputs": [
-      1405,
-      1309,
-      1114,
-      939,
-      783,
-      645,
-      524,
-      419,
-      329,
-      253,
-      190,
-      139,
-      99,
-      69,
-      48,
+      1255,
+      1176,
+      997,
+      837,
+      695,
+      570,
+      461,
+      367,
+      287,
+      220,
+      165,
+      121,
+      87,
+      62,
+      45,
       35
     ]
   },
   "profile": "fast",
   "size": "32bit",
   "source": "generator",
-  "ticks": 93,
+  "ticks": 58,
   "verified": "exhaustive",
-  "version": "1.0",
+  "version": "2.0",
   "workshop": ""
 }
