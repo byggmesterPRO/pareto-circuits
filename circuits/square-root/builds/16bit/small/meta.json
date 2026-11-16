@@ -2,9 +2,9 @@
   "authors": [
     "byggmesterPRO"
   ],
-  "date": "2026-11-10",
+  "date": "2026-11-16",
   "family": "square-root",
-  "gates": 214,
+  "gates": 158,
   "notes": "Generator design: ripple.",
   "optimal": "best-known",
   "pins": {
@@ -27,21 +27,21 @@
       15
     ],
     "outputs": [
-      229,
-      181,
+      173,
       139,
-      103,
-      73,
-      49,
-      31,
+      109,
+      83,
+      61,
+      43,
+      29,
       19
     ]
   },
   "profile": "small",
   "size": "16bit",
   "source": "generator",
-  "ticks": 88,
+  "ticks": 80,
   "verified": "exhaustive",
-  "version": "1.0",
+  "version": "2.0",
   "workshop": ""
 }
