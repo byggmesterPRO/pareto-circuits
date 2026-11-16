@@ -2,10 +2,10 @@
   "authors": [
     "byggmesterPRO"
   ],
-  "date": "2026-11-10",
+  "date": "2026-11-16",
   "family": "adder-subtractor",
-  "gates": 28,
-  "notes": "Generator design: lookahead.",
+  "gates": 27,
+  "notes": "Generator design: clauses.",
   "optimal": "best-known",
   "pins": {
     "inputs": [
@@ -20,18 +20,18 @@
       8
     ],
     "outputs": [
+      31,
       32,
       33,
       34,
-      35,
-      36
+      35
     ]
   },
   "profile": "fast",
   "size": "4bit",
   "source": "generator",
-  "ticks": 4,
+  "ticks": 3,
   "verified": "exhaustive",
-  "version": "1.0",
+  "version": "2.0",
   "workshop": ""
 }
