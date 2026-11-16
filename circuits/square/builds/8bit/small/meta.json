@@ -2,10 +2,10 @@
   "authors": [
     "byggmesterPRO"
   ],
-  "date": "2026-11-10",
+  "date": "2026-11-16",
   "family": "square",
-  "gates": 126,
-  "notes": "Generator design: ripple.",
+  "gates": 108,
+  "notes": "Generator design: parts-ripple.",
   "optimal": "best-known",
   "pins": {
     "inputs": [
@@ -23,25 +23,25 @@
       null,
       36,
       38,
-      44,
-      50,
-      60,
-      70,
-      84,
-      94,
-      106,
-      114,
-      122,
-      126,
-      130,
-      133
+      43,
+      48,
+      56,
+      64,
+      75,
+      83,
+      92,
+      99,
+      105,
+      109,
+      112,
+      115
     ]
   },
   "profile": "small",
   "size": "8bit",
   "source": "generator",
-  "ticks": 23,
+  "ticks": 26,
   "verified": "exhaustive",
-  "version": "1.0",
+  "version": "2.0",
   "workshop": ""
 }
