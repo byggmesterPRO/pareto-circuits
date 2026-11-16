@@ -2,10 +2,10 @@
   "authors": [
     "byggmesterPRO"
   ],
-  "date": "2026-11-10",
+  "date": "2026-11-16",
   "family": "square-root",
-  "gates": 1180,
-  "notes": "Generator design: two-level-8.",
+  "gates": 1224,
+  "notes": "Generator design: lookahead.",
   "optimal": "best-known",
   "pins": {
     "inputs": [
@@ -43,29 +43,29 @@
       31
     ],
     "outputs": [
-      1211,
-      1110,
-      960,
-      825,
-      703,
-      593,
-      494,
-      405,
-      325,
-      254,
-      190,
-      139,
-      99,
-      69,
-      48,
+      1255,
+      1176,
+      997,
+      837,
+      695,
+      570,
+      461,
+      367,
+      287,
+      220,
+      165,
+      121,
+      87,
+      62,
+      45,
       35
     ]
   },
   "profile": "efficient",
   "size": "32bit",
   "source": "generator",
-  "ticks": 103,
+  "ticks": 58,
   "verified": "exhaustive",
-  "version": "1.0",
+  "version": "2.0",
   "workshop": ""
 }
