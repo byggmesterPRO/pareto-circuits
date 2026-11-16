@@ -2,10 +2,10 @@
   "authors": [
     "byggmesterPRO"
   ],
-  "date": "2026-11-10",
+  "date": "2026-11-16",
   "family": "adder-subtractor",
-  "gates": 81,
-  "notes": "Generator design: ripple.",
+  "gates": 65,
+  "notes": "Generator design: sum-carry.",
   "optimal": "best-known",
   "pins": {
     "inputs": [
@@ -44,6 +44,10 @@
       32
     ],
     "outputs": [
+      33,
+      37,
+      41,
+      45,
       49,
       53,
       57,
@@ -56,18 +60,14 @@
       85,
       89,
       93,
-      97,
-      101,
-      105,
-      109,
-      113
+      97
     ]
   },
   "profile": "small",
   "size": "16bit",
   "source": "generator",
-  "ticks": 34,
+  "ticks": 33,
   "verified": "sampled",
-  "version": "1.0",
+  "version": "2.0",
   "workshop": ""
 }
