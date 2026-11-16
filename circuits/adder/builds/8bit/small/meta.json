@@ -2,10 +2,10 @@
   "authors": [
     "byggmesterPRO"
   ],
-  "date": "2026-11-15",
+  "date": "2026-11-16",
   "family": "adder",
-  "gates": 27,
-  "notes": "Generator design: pairs.",
+  "gates": 24,
+  "notes": "Generator design: sum-carry.",
   "optimal": "best-known",
   "pins": {
     "inputs": [
@@ -27,22 +27,22 @@
       15
     ],
     "outputs": [
+      16,
+      18,
       21,
-      17,
-      28,
       24,
-      35,
-      31,
-      42,
-      38,
-      41
+      27,
+      30,
+      33,
+      36,
+      39
     ]
   },
   "profile": "small",
   "size": "8bit",
   "source": "generator",
-  "ticks": 17,
+  "ticks": 16,
   "verified": "exhaustive",
-  "version": "2.0",
+  "version": "3.0",
   "workshop": ""
 }
