@@ -20,14 +20,14 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 | 4bit | small | v1.0 | 14 | 2 | normal-form | exhaustive | |
 | 4bit | efficient | v1.0 | 14 | 2 | normal-form | exhaustive | |
 | 8bit | fast | v1.0 | 174 | 2 | normal-form | exhaustive | |
-| 8bit | small | v1.0 | 126 | 23 | ripple | exhaustive | |
+| 8bit | small | v2.0 | 108 | 26 | parts-ripple | exhaustive | |
 | 8bit | efficient | v1.0 | 174 | 2 | normal-form | exhaustive | |
 | 16bit | fast | v1.0 | 1238 | 10 | wide-blocks-16 | exhaustive | |
-| 16bit | small | v1.0 | 570 | 55 | ripple | exhaustive | |
-| 16bit | efficient | v1.0 | 681 | 13 | tree-two-level-8 | exhaustive | |
-| 32bit | fast | v1.0 | 7813 | 12 | wide-lookahead | exhaustive | |
-| 32bit | small | v1.0 | 2418 | 119 | ripple | exhaustive | |
-| 32bit | efficient | v1.0 | 2789 | 17 | tree-two-level-8 | exhaustive | |
+| 16bit | small | v2.0 | 472 | 60 | parts-ripple | exhaustive | |
+| 16bit | efficient | v2.0 | 651 | 12 | tree+factors | exhaustive | |
+| 32bit | fast | v1.1 | 6708 | 12 | wide+clauses | exhaustive | |
+| 32bit | small | v2.0 | 1968 | 128 | parts-ripple | exhaustive | |
+| 32bit | efficient | v2.0 | 2663 | 16 | tree+factors | exhaustive | |
 
 Gates and ticks do not count the input gates (see the main README). Every input was tried at every size (4.3 billion at 32 bit). None has been tested in the game yet.
 

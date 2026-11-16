@@ -21,17 +21,17 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 | 2bit | small | v1.0 | 7 | 2 | normal-form | exhaustive | |
 | 2bit | efficient | v1.0 | 7 | 2 | normal-form | exhaustive | |
 | 4bit | fast | v1.0 | 104 | 2 | normal-form | exhaustive | |
-| 4bit | small | v1.0 | 56 | 11 | ripple | exhaustive | |
+| 4bit | small | v2.0 | 50 | 13 | parts-ripple | exhaustive | |
 | 4bit | efficient | v1.0 | 104 | 2 | normal-form | exhaustive | |
 | 8bit | fast | v1.0 | 518 | 9 | wide-blocks-8 | exhaustive | |
-| 8bit | small | v1.0 | 272 | 27 | ripple | exhaustive | |
+| 8bit | small | v2.0 | 230 | 31 | parts-ripple | exhaustive | |
 | 8bit | efficient | v1.0 | 310 | 11 | tree-blocks-8 | exhaustive | |
-| 16bit | fast | v1.0 | 3323 | 11 | wide-lookahead | exhaustive | |
-| 16bit | small | v1.0 | 1184 | 59 | ripple | exhaustive | |
-| 16bit | efficient | v1.0 | 1382 | 15 | tree-blocks-16 | exhaustive | |
-| 32bit | fast | v1.0 | 15839 | 12 | wide-lookahead | sampled | |
-| 32bit | small | v1.0 | 4928 | 123 | ripple | sampled | |
-| 32bit | efficient | v1.0 | 5308 | 19 | tree-two-level-8 | sampled | |
+| 16bit | fast | v1.1 | 3129 | 11 | wide+clauses | exhaustive | |
+| 16bit | small | v2.0 | 974 | 67 | parts-ripple | exhaustive | |
+| 16bit | efficient | v2.0 | 1271 | 16 | tree+factors | exhaustive | |
+| 32bit | fast | v1.1 | 14626 | 12 | wide+clauses | sampled | |
+| 32bit | small | v2.0 | 3998 | 139 | parts-ripple | sampled | |
+| 32bit | efficient | v2.0 | 5177 | 18 | tree+factors | sampled | |
 
 Gates and ticks do not count the input gates (see the main README). Up to 16 bit every input was tried (4.3 billion at 16 bit). 32 bit was checked on about a million inputs:
 random ones, edge cases, single bits and runs of ones. None has been tested in the game yet.
@@ -54,6 +54,8 @@ Every design makes the n x n products of one bit of a and one bit of b, and then
 | `tree-<adder>` | Full adders in layers bring the columns down to two rows; a fast adder adds those. |
 | `wide-<adder>` | The same with counters of up to 7 bits in and 3 out. A counter is 2 gates deep whatever its size, so there are far fewer layers, at several times the gates. |
 | `normal-form` | Every output is one XOR gate over AND gates of plain inputs (up to 4bit) |
+| `parts-ripple`, `parts-<adder>` | Like `ripple` and `tree-<adder>`, with full adders of 3 gates: the carry is handed on as three signals whose XOR it is, and the adder that reads it takes all three into its XOR gate. Fewer gates, and a tick or two more where a carry has to be joined after all. |
+| `tree+<design>`, `parts+<design>`, `wide+<design>` | The last two rows are added by a design from the adder's search (`clauses`, `factors`, `within-T`, `sum-carry`; see `circuits/adder`). Only the ones nothing else beats are offered. |
 
 `<adder>` is one of the adder family's carry networks: `lookahead`, `blocks-k` or `two-level-k`.
 
