@@ -2,9 +2,9 @@
   "authors": [
     "byggmesterPRO"
   ],
-  "date": "2026-11-10",
+  "date": "2026-11-16",
   "family": "divider",
-  "gates": 299,
+  "gates": 265,
   "notes": "Generator design: lookahead.",
   "optimal": "best-known",
   "pins": {
@@ -27,29 +27,29 @@
       15
     ],
     "outputs": [
-      291,
-      218,
-      158,
-      110,
-      73,
-      46,
-      28,
+      257,
+      192,
+      139,
+      97,
+      65,
+      42,
+      27,
       18,
-      293,
-      296,
-      299,
-      302,
-      305,
-      308,
-      311,
-      314
+      273,
+      274,
+      275,
+      276,
+      277,
+      278,
+      279,
+      280
     ]
   },
   "profile": "fast",
   "size": "8bit",
   "source": "generator",
-  "ticks": 47,
+  "ticks": 29,
   "verified": "exhaustive",
-  "version": "1.0",
+  "version": "2.0",
   "workshop": ""
 }
