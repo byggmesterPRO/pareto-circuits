@@ -10,7 +10,14 @@
 
 use logic_sim::build::{Builder, Design, Netlist, S};
 
+mod factors;
+mod net;
+mod sum_carry;
+
 pub const SIZES: [usize; 6] = [2, 4, 8, 16, 32, 64];
+
+/// The tick limits the `within-T` designs are planned for.
+const LIMITS: [usize; 10] = [5, 6, 8, 10, 12, 16, 24, 32, 48, 64];
 
 /// Every design for this size. The tool that makes builds measures them and picks the winners.
 pub fn designs(n: usize) -> Result<Vec<Design>, String> {
@@ -23,6 +30,42 @@ pub fn designs(n: usize) -> Result<Vec<Design>, String> {
     for k in [2, 4, 8, 16] {
         if 2 * k <= n {
             out.push(Design::new(format!("two-level-{k}"), two_level(n, k))?);
+        }
+    }
+    out.extend(new_designs(n)?);
+    Ok(out)
+}
+
+/// The designs from the search (tools/evolve/tasks/adder/runs): `sum-carry`, `clauses`, `factors` and
+/// `within-T`. A design that comes out the same in gates and ticks as one offered before is left out.
+fn new_designs(n: usize) -> Result<Vec<Design>, String> {
+    let size = |net: &Netlist| (net.gates.len(), net::ticks(net));
+    let (sc, outs) = sum_carry::ripple(n);
+    let mut out = vec![Design::new("sum-carry", sc.finish(&outs))?];
+    // the fast ones, kept to offer them in the within-T designs too
+    let mut quick: Vec<Netlist> = vec![];
+    for (name, t) in [("clauses", 3), ("factors", 4)] {
+        if let Some(net) = factors::fast(n, t) {
+            if !quick.iter().any(|q| size(q) == size(&net)) {
+                quick.push(net.clone());
+                out.push(Design { name: name.into(), netlist: net });
+            }
+        }
+    }
+    let mut seen: Vec<(usize, usize)> = out.iter().map(|d| size(&d.netlist)).collect();
+    let mut best: Option<Netlist> = None; // the smallest so far that fits the limit
+    for t in LIMITS.into_iter().filter(|&t| t < 2 * n) {
+        let mut cands: Vec<Netlist> = quick.iter().filter(|q| net::ticks(q) <= t).cloned().collect();
+        if let Some((net, outs)) = sum_carry::within(n, t) {
+            cands.push(net.finish(&outs).map_err(|e| format!("within-{t}: {e}"))?);
+        }
+        cands.extend(best.take());
+        best = cands.into_iter().min_by_key(|c| size(c));
+        if let Some(b) = &best {
+            if !seen.contains(&size(b)) {
+                seen.push(size(b));
+                out.push(Design { name: format!("within-{t}"), netlist: b.clone() });
+            }
         }
     }
     Ok(out)

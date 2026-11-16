@@ -49,8 +49,9 @@ target/release/pareto designs adder 16bit       # every design, measured
 target/release/pareto build-all adder --write   # rebuild the slots that a design now wins
 ```
 
-The code is in `generator/src/lib.rs`. It offers several designs per size, and the build tool gives each
-profile to whichever design wins when measured.
+The code is in `generator/src/lib.rs`, with the designs from the search in `sum_carry.rs` and `factors.rs`
+next to it. It offers several designs per size, and the build tool gives each profile to whichever design wins
+when measured.
 
 | Design | Idea | Ticks | Gates |
 |---|---|---|---|
@@ -59,10 +60,20 @@ profile to whichever design wins when measured.
 | `lookahead` | Every sum bit sees its carry in one step | 3 at any size | about n x n / 2 |
 | `blocks-k` | Lookahead inside blocks of k bits, the carry walking from block to block | 2 per block | in between |
 | `two-level-k` | Blocks of k bits, and a second lookahead across the blocks | 5 at any size | far fewer than `lookahead` |
+| `sum-carry` | The carry is read back from the sum, so a bit is 3 gates | 2 per bit | 3 per bit |
+| `clauses` | Lookahead where small blocks say "a carry starts here" with OR gates over the inputs | 3 at any size | well under `lookahead`: 365 at 32 bit, where it has 595 |
+| `factors` | Lookahead where a block's carry is an AND of shared OR factors, in up to 3 levels | 4 at any size | 6 to 8 per bit |
+| `within-T` | A planner picks, per bit, the cheapest way to have its carry in time, for a limit of T ticks | at most T | between `factors` and `sum-carry` |
 
-The trick behind all but `ripple`: a carry reaches a bit from exactly one place, the nearest lower bit that
+The trick behind all but `ripple` and `sum-carry`: a carry reaches a bit from exactly one place, the nearest lower bit that
 starts one. So the terms for "a carry arrives from bit j" are never on two at a time, their OR is the same as
 their XOR, and a sum bit is a single XOR gate over those terms. No gate is spent on the carry itself.
+
+The carry from the sum, behind `sum-carry` and much of `within-T`: with s the sum of a bit, its carry out is
+s xor or(a, b, s) xor and(a, b, s). So a bit needs the sum, the OR and the AND, and no gate for the carry: the
+next sum is one wide XOR over its a and b and those three signals. That is 3 gates a bit where a full adder
+takes 4, because the XOR that would make the carry is folded into the next sum. These designs came from a
+search, in `tools/evolve/tasks/adder/runs`.
 
 The full adder in `ripple` is 4 gates, which exact search showed is the fewest for one bit taken alone.
 Where a gate would drive more than 255 others (the 32 and 64 bit `lookahead`), it is doubled.
