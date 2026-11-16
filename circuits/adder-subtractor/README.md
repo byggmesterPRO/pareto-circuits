@@ -16,20 +16,20 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 | Size | Profile | Version | Gates | Ticks | Design | Verified | Workshop |
 |---|---|---|---|---|---|---|---|
 | 2bit | fast | v1.0 | 13 | 4 | lookahead | exhaustive | |
-| 2bit | small | v1.0 | 11 | 6 | ripple | exhaustive | |
-| 2bit | efficient | v1.0 | 13 | 4 | lookahead | exhaustive | |
-| 4bit | fast | v1.0 | 28 | 4 | lookahead | exhaustive | |
-| 4bit | small | v1.0 | 21 | 10 | ripple | exhaustive | |
-| 4bit | efficient | v1.0 | 28 | 4 | lookahead | exhaustive | |
-| 8bit | fast | v1.0 | 70 | 4 | lookahead | exhaustive | |
-| 8bit | small | v1.0 | 41 | 18 | ripple | exhaustive | |
-| 8bit | efficient | v1.0 | 54 | 5 | two-level-4 | exhaustive | |
-| 16bit | fast | v1.0 | 202 | 4 | lookahead | sampled | |
-| 16bit | small | v1.0 | 81 | 34 | ripple | sampled | |
-| 16bit | efficient | v1.0 | 124 | 5 | two-level-4 | sampled | |
-| 32bit | fast | v1.0 | 666 | 4 | lookahead | sampled | |
-| 32bit | small | v1.0 | 161 | 66 | ripple | sampled | |
-| 32bit | efficient | v1.0 | 300 | 5 | two-level-8 | sampled | |
+| 2bit | small | v2.0 | 9 | 5 | sum-carry | exhaustive | |
+| 2bit | efficient | v2.0 | 9 | 5 | sum-carry | exhaustive | |
+| 4bit | fast | v2.0 | 27 | 3 | clauses | exhaustive | |
+| 4bit | small | v2.0 | 17 | 9 | sum-carry | exhaustive | |
+| 4bit | efficient | v2.0 | 27 | 3 | clauses | exhaustive | |
+| 8bit | fast | v1.1 | 62 | 4 | clauses | exhaustive | |
+| 8bit | small | v2.0 | 33 | 17 | sum-carry | exhaustive | |
+| 8bit | efficient | v2.0 | 62 | 4 | clauses | exhaustive | |
+| 16bit | fast | v1.1 | 155 | 4 | clauses | sampled | |
+| 16bit | small | v2.0 | 65 | 33 | sum-carry | sampled | |
+| 16bit | efficient | v1.1 | 113 | 5 | factors | sampled | |
+| 32bit | fast | v1.1 | 408 | 4 | clauses | sampled | |
+| 32bit | small | v2.0 | 129 | 65 | sum-carry | sampled | |
+| 32bit | efficient | v1.1 | 261 | 5 | factors | sampled | |
 
 Gates and ticks do not count the input gates (see the main README). Up to 8 bit every input was tried. From 16 bit on they were checked on about a million inputs, with the
 adder's carry chains and the subtractor's borrow chains among them. None has been tested in the game yet.
@@ -46,6 +46,10 @@ The code is in `generator/src/lib.rs`.
 
 Subtracting is adding the inverse of b plus one. So b goes through one XOR gate per bit with the mode, and the
 mode is the carry into the lowest bit. That costs one gate per bit and one tick over a plain adder.
+
+`sum-carry`, `clauses`, `factors` and `within-T` are the designs from the adder's search
+(`tools/evolve/tasks/adder`) with the mode pin added, by `mode_designs` in the adder generator. The carry in
+comes from an adder one bit longer whose lowest bit has the mode on both inputs.
 
 `ripple` lets the carry walk from bit to bit, `lookahead` gives every bit its carry in one step, `blocks-k`
 does that inside blocks of k bits, and `two-level-k` adds a second lookahead across the blocks. They are the

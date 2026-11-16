@@ -23,20 +23,20 @@ The exact gate behind every pin is listed under `pins` in each build's `meta.jso
 | 2bit | small | v1.0 | 6 | 4 | ripple | exhaustive | |
 | 2bit | efficient | v1.0 | 9 | 2 | normal-form | exhaustive | |
 | 4bit | fast | v1.0 | 81 | 2 | normal-form | exhaustive | |
-| 4bit | small | v1.0 | 14 | 8 | ripple | exhaustive | |
-| 4bit | efficient | v1.0 | 23 | 3 | lookahead | exhaustive | |
-| 8bit | fast | v1.0 | 61 | 3 | lookahead | exhaustive | |
-| 8bit | small | v1.0 | 30 | 16 | ripple | exhaustive | |
-| 8bit | efficient | v1.0 | 61 | 3 | lookahead | exhaustive | |
-| 16bit | fast | v1.0 | 185 | 3 | lookahead | exhaustive | |
-| 16bit | small | v1.0 | 62 | 32 | ripple | exhaustive | |
-| 16bit | efficient | v1.0 | 185 | 3 | lookahead | exhaustive | |
-| 32bit | fast | v1.0 | 628 | 3 | lookahead | sampled | |
-| 32bit | small | v1.0 | 126 | 64 | ripple | sampled | |
-| 32bit | efficient | v1.0 | 296 | 5 | two-level-8 | sampled | |
-| 64bit | fast | v1.0 | 2411 | 3 | lookahead | sampled | |
-| 64bit | small | v1.0 | 254 | 128 | ripple | sampled | |
-| 64bit | efficient | v1.0 | 720 | 5 | two-level-8 | sampled | |
+| 4bit | small | v1.1 | 12 | 8 | sum-carry | exhaustive | |
+| 4bit | efficient | v1.1 | 20 | 3 | clauses | exhaustive | |
+| 8bit | fast | v1.1 | 58 | 3 | within-3 | exhaustive | |
+| 8bit | small | v1.1 | 24 | 16 | sum-carry | exhaustive | |
+| 8bit | efficient | v1.1 | 58 | 3 | within-3 | exhaustive | |
+| 16bit | fast | v1.1 | 182 | 3 | within-3 | exhaustive | |
+| 16bit | small | v1.1 | 48 | 32 | sum-carry | exhaustive | |
+| 16bit | efficient | v2.0 | 104 | 5 | within-5 | exhaustive | |
+| 32bit | fast | v1.1 | 623 | 3 | within-3 | sampled | |
+| 32bit | small | v1.1 | 96 | 64 | sum-carry | sampled | |
+| 32bit | efficient | v1.1 | 250 | 5 | factors | sampled | |
+| 64bit | fast | v1.1 | 2406 | 3 | within-3 | sampled | |
+| 64bit | small | v1.1 | 192 | 128 | sum-carry | sampled | |
+| 64bit | efficient | v1.1 | 580 | 5 | factors | sampled | |
 
 Gates and ticks do not count the input gates (see the main README). Up to 16 bit every input was tried. At 32 and 64 bit there are too many, so they were checked on about a
 million inputs: random ones, edge cases, and borrow chains from any bit to any higher bit. None has been tested in the game yet.
@@ -58,6 +58,14 @@ The code is in `generator/src/lib.rs`.
 | `blocks-k` | Lookahead inside blocks of k bits, the borrow walking from block to block | 2 per block | in between |
 | `two-level-k` | Blocks of k bits, and a second lookahead across the blocks | 5 at any size | far fewer than `lookahead` |
 | `normal-form` | Every output is one XOR gate over AND gates of plain inputs (up to 4bit) | 2 | many |
+| `sum-carry` | The borrow out of a bit is read back from its difference bit | 2 per bit | 3 per bit |
+| `clauses`, `factors` | The adder's fast designs, turned into subtractors | 4 and 5 | far fewer than `lookahead` |
+| `within-T` | Planned for a limit of T ticks: lookahead where the limit needs it, `sum-carry` steps elsewhere | T | in between |
+
+The last three rows come from the adder's search (`tools/evolve/tasks/adder`). a - b is the inverse of
+"not a" + b, so an adder becomes a subtractor by reading a inverted and giving its sum bits inverted; the code
+is `minus.rs` in the adder generator. That costs about one gate per bit and sometimes one tick, which is why
+the subtractor's `clauses` takes 4 ticks where the adder's takes 3.
 
 A borrow works like the adder's carry: it reaches a bit from exactly one place, so a difference bit is a single
 gate over the terms for "a borrow arrives from bit j". The full subtractor in `ripple` is 4 gates, which exact
