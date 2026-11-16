@@ -2,10 +2,10 @@
   "authors": [
     "byggmesterPRO"
   ],
-  "date": "2026-11-10",
+  "date": "2026-11-16",
   "family": "adder",
-  "gates": 168,
-  "notes": "Generator design: lookahead.",
+  "gates": 133,
+  "notes": "Generator design: clauses.",
   "optimal": "best-known",
   "pins": {
     "inputs": [
@@ -43,23 +43,23 @@
       31
     ],
     "outputs": [
-      32,
-      64,
-      66,
-      69,
-      73,
-      78,
-      84,
-      91,
-      99,
-      108,
-      118,
-      129,
-      141,
+      148,
+      149,
+      150,
+      151,
+      152,
+      153,
       154,
-      168,
-      183,
-      199
+      155,
+      156,
+      157,
+      158,
+      159,
+      160,
+      161,
+      162,
+      163,
+      164
     ]
   },
   "profile": "fast",
@@ -67,6 +67,6 @@
   "source": "generator",
   "ticks": 3,
   "verified": "exhaustive",
-  "version": "1.0",
+  "version": "1.1",
   "workshop": ""
 }
