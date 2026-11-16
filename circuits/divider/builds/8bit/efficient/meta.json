@@ -2,10 +2,10 @@
   "authors": [
     "byggmesterPRO"
   ],
-  "date": "2026-11-15",
+  "date": "2026-11-16",
   "family": "divider",
-  "gates": 275,
-  "notes": "Generator design: two-level-4.",
+  "gates": 265,
+  "notes": "Generator design: lookahead.",
   "optimal": "best-known",
   "pins": {
     "inputs": [
@@ -27,29 +27,29 @@
       15
     ],
     "outputs": [
-      267,
-      204,
-      151,
-      107,
-      73,
-      46,
-      28,
+      257,
+      192,
+      139,
+      97,
+      65,
+      42,
+      27,
       18,
-      269,
-      272,
+      273,
+      274,
       275,
+      276,
+      277,
       278,
-      281,
-      284,
-      287,
-      290
+      279,
+      280
     ]
   },
   "profile": "efficient",
   "size": "8bit",
   "source": "generator",
-  "ticks": 51,
+  "ticks": 29,
   "verified": "exhaustive",
-  "version": "2.0",
+  "version": "3.0",
   "workshop": ""
 }
