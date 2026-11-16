@@ -2,10 +2,10 @@
   "authors": [
     "byggmesterPRO"
   ],
-  "date": "2026-11-10",
+  "date": "2026-11-16",
   "family": "subtractor",
-  "gates": 185,
-  "notes": "Generator design: lookahead.",
+  "gates": 104,
+  "notes": "Generator design: within-5.",
   "optimal": "best-known",
   "pins": {
     "inputs": [
@@ -43,30 +43,30 @@
       31
     ],
     "outputs": [
-      201,
-      202,
-      203,
-      204,
-      205,
-      206,
-      207,
-      208,
-      209,
-      210,
-      211,
-      212,
-      213,
-      214,
-      215,
-      216,
-      200
+      34,
+      123,
+      37,
+      124,
+      48,
+      125,
+      126,
+      127,
+      128,
+      129,
+      130,
+      131,
+      132,
+      133,
+      134,
+      135,
+      122
     ]
   },
   "profile": "efficient",
   "size": "16bit",
   "source": "generator",
-  "ticks": 3,
+  "ticks": 5,
   "verified": "exhaustive",
-  "version": "1.0",
+  "version": "2.0",
   "workshop": ""
 }
