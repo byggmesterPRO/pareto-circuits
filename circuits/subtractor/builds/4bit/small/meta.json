@@ -2,10 +2,10 @@
   "authors": [
     "byggmesterPRO"
   ],
-  "date": "2026-11-10",
+  "date": "2026-11-16",
   "family": "subtractor",
-  "gates": 14,
-  "notes": "Generator design: ripple.",
+  "gates": 12,
+  "notes": "Generator design: sum-carry.",
   "optimal": "best-known",
   "pins": {
     "inputs": [
@@ -21,9 +21,9 @@
     "outputs": [
       8,
       10,
-      14,
-      18,
-      21
+      13,
+      16,
+      19
     ]
   },
   "profile": "small",
@@ -31,6 +31,6 @@
   "source": "generator",
   "ticks": 8,
   "verified": "exhaustive",
-  "version": "1.0",
+  "version": "1.1",
   "workshop": ""
 }
